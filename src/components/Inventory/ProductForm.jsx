@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { Form, Button } from "react-bootstrap";
+import { Form, Button, Spinner } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
+import { toast } from "react-hot-toast";
 
 function ProductForm({ product, onClose }) {
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     name: "",
     category: "",
     unit_price: "",
     total_quantity: "",
   });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (product) {
-      setFormData({
+      setForm({
         name: product.name,
         category: product.category,
         unit_price: product.unit_price,
@@ -22,42 +24,52 @@ function ProductForm({ product, onClose }) {
   }, [product]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const url = product ? `/products/${product.product_id}` : "/products";
-    const method = product ? "PUT" : "POST";
-
+    setLoading(true);
     try {
+      const method = product ? "PUT" : "POST";
+      const url = product ? `/products/${product.product_id}` : "/products";
+
       const res = await authFetch(url, {
         method,
-        body: JSON.stringify(formData),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to save product");
+      if (res.ok) {
+        onClose(true); // <--- Refresh Inventory and show success toast
+      } else {
+        const errorData = await res.json();
+        console.error("Save error:", errorData);
+        toast.error(errorData.message || "Failed to save product.");
       }
-
-      onClose(); // Close modal and refresh list
-    } catch (err) {
-      console.error("Error saving product:", err);
-      alert("Something went wrong while saving the product.");
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("Failed to save product.");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    onClose(false); // <--- Just close without refreshing or showing success toast
   };
 
   return (
     <Form onSubmit={handleSubmit}>
       <Form.Group className="mb-3" controlId="name">
-        <Form.Label>Product Name</Form.Label>
+        <Form.Label>Name</Form.Label>
         <Form.Control
           type="text"
-          placeholder="Enter product name"
           name="name"
-          value={formData.name}
+          value={form.name}
           onChange={handleChange}
           required
         />
@@ -67,10 +79,10 @@ function ProductForm({ product, onClose }) {
         <Form.Label>Category</Form.Label>
         <Form.Control
           type="text"
-          placeholder="Enter category"
           name="category"
-          value={formData.category}
+          value={form.category}
           onChange={handleChange}
+          required
         />
       </Form.Group>
 
@@ -79,8 +91,9 @@ function ProductForm({ product, onClose }) {
         <Form.Control
           type="number"
           name="unit_price"
-          value={formData.unit_price}
+          value={form.unit_price}
           onChange={handleChange}
+          step="0.01"
           required
         />
       </Form.Group>
@@ -90,18 +103,18 @@ function ProductForm({ product, onClose }) {
         <Form.Control
           type="number"
           name="total_quantity"
-          value={formData.total_quantity}
+          value={form.total_quantity}
           onChange={handleChange}
           required
         />
       </Form.Group>
 
       <div className="d-flex justify-content-end">
-        <Button variant="secondary" onClick={onClose} className="me-2">
+        <Button variant="secondary" onClick={handleCancel} className="me-2" disabled={loading}>
           Cancel
         </Button>
-        <Button type="submit" variant="primary">
-          {product ? "Update" : "Add"}
+        <Button type="submit" variant="primary" disabled={loading}>
+          {loading ? <Spinner animation="border" size="sm" /> : product ? "Update" : "Create"}
         </Button>
       </div>
     </Form>

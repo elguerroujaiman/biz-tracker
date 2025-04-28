@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import ProductForm from "./ProductForm";
 import { Button, Table, Modal } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
+import { toast } from "react-hot-toast"; // Toast import
 
 function Inventory() {
   const [products, setProducts] = useState([]);
@@ -17,6 +18,7 @@ function Inventory() {
       setProducts(data);
     } catch (err) {
       console.error("Error fetching products:", err);
+      toast.error("Failed to load products.");
     }
   };
 
@@ -36,19 +38,30 @@ function Inventory() {
 
   const handleDelete = async () => {
     try {
-      await authFetch(`/products/${deleteId}`, { method: "DELETE" });
-      setConfirmDelete(false);
-      setDeleteId(null);
-      fetchProducts(); // Refresh list
+      const response = await authFetch(`/products/${deleteId}`, { method: "DELETE" });
+      if (response.ok) {
+        toast.success("Product deleted successfully!");
+        fetchProducts();
+      } else {
+        toast.error("Failed to delete product.");
+      }
     } catch (err) {
       console.error("Error deleting product:", err);
+      toast.error("Error deleting product.");
+    } finally {
+      setConfirmDelete(false);
+      setDeleteId(null);
     }
   };
 
-  const handleCloseForm = () => {
+  // FIXED: handleCloseForm now accepts a 'refresh' argument
+  const handleCloseForm = (refresh = false, isEdit = false) => {
     setShowForm(false);
     setEditingProduct(null);
-    fetchProducts(); // Refresh list after add/edit
+    if (refresh) {
+      fetchProducts();
+      toast.success(isEdit ? "Product updated successfully!" : "Product added successfully!");
+    }
   };
 
   return (
@@ -107,12 +120,16 @@ function Inventory() {
         </tbody>
       </Table>
 
-      <Modal show={showForm} onHide={handleCloseForm}>
+      <Modal show={showForm} onHide={() => handleCloseForm(false)}>
         <Modal.Header closeButton>
           <Modal.Title>{editingProduct ? "Edit Product" : "Add Product"}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <ProductForm product={editingProduct} onClose={handleCloseForm} />
+          {/* Pass refresh and edit flags from ProductForm */}
+          <ProductForm
+            product={editingProduct}
+            onClose={(refresh) => handleCloseForm(refresh, !!editingProduct)}
+          />
         </Modal.Body>
       </Modal>
 

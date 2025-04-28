@@ -4,6 +4,8 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import { Toaster } from "react-hot-toast"; // ✅ NEW
+
 import Login from "./components/Login";
 import SignUp from "./components/Signup";
 import Home from "./components/Home";
@@ -20,6 +22,7 @@ import SalesStats from "./components/sales/SalesStats";
 function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" /> {/* ✅ NEW: This renders toast notifications globally */}
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/signin" element={<Login />} />

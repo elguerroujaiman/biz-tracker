@@ -1,19 +1,18 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { authFetch } from "../../utils/api";
+import { toast } from "react-hot-toast"; // <-- ADDED this import
 
-const SaleForm = () => {
+const SaleForm = ({ onSaleCreated }) => {
   const [items, setItems] = useState([]);
   const [note, setNote] = useState("");
   const [product_id, setProductId] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit_price, setUnitPrice] = useState("");
   const [editIndex, setEditIndex] = useState(null);
-  const navigate = useNavigate();
 
   const addItem = () => {
     if (!product_id || !quantity || !unit_price) {
-      alert("Please fill all item fields before adding.");
+      toast.error("Please fill all item fields before adding.");
       return;
     }
 
@@ -32,7 +31,6 @@ const SaleForm = () => {
       setItems([...items, newItem]);
     }
 
-    // Clear the input fields after adding
     setProductId("");
     setQuantity("");
     setUnitPrice("");
@@ -55,7 +53,7 @@ const SaleForm = () => {
     event.preventDefault();
 
     if (items.length === 0) {
-      alert("Please add at least one item to the sale.");
+      toast.error("Please add at least one item to the sale.");
       return;
     }
 
@@ -68,24 +66,37 @@ const SaleForm = () => {
       });
 
       if (response.ok) {
-        // Sale successfully created
         setItems([]);
         setNote("");
         setProductId("");
         setQuantity("");
         setUnitPrice("");
         setEditIndex(null);
-        navigate("/sales");
+
+        toast.success("Sale created successfully!");
+
+        if (onSaleCreated) {
+          onSaleCreated(); // trigger refresh from parent
+        }
       } else {
         console.error("Failed to create sale:", await response.text());
+        toast.error("Failed to create sale.");
       }
     } catch (error) {
       console.error("Error creating sale:", error);
+      toast.error("Error creating sale.");
     }
   };
 
   return (
-    <div style={{ margin: "2rem 0", padding: "1rem", border: "1px solid #ddd", borderRadius: "8px" }}>
+    <div
+      style={{
+        margin: "2rem 0",
+        padding: "1rem",
+        border: "1px solid #ddd",
+        borderRadius: "8px",
+      }}
+    >
       <h2 style={{ marginBottom: "1rem" }}>Create Sale</h2>
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: "1rem" }}>
@@ -94,7 +105,12 @@ const SaleForm = () => {
             type="text"
             value={product_id}
             onChange={(e) => setProductId(e.target.value)}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.5rem" }}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "0.5rem",
+              marginTop: "0.5rem",
+            }}
           />
         </div>
 
@@ -104,7 +120,12 @@ const SaleForm = () => {
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.5rem" }}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "0.5rem",
+              marginTop: "0.5rem",
+            }}
           />
         </div>
 
@@ -114,7 +135,12 @@ const SaleForm = () => {
             type="number"
             value={unit_price}
             onChange={(e) => setUnitPrice(e.target.value)}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.5rem" }}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "0.5rem",
+              marginTop: "0.5rem",
+            }}
           />
         </div>
 
@@ -139,7 +165,12 @@ const SaleForm = () => {
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            style={{ display: "block", width: "100%", padding: "0.5rem", marginTop: "0.5rem" }}
+            style={{
+              display: "block",
+              width: "100%",
+              padding: "0.5rem",
+              marginTop: "0.5rem",
+            }}
           ></textarea>
         </div>
 
@@ -200,7 +231,10 @@ const SaleForm = () => {
 
       {items.length > 0 && (
         <div style={{ marginTop: "1rem", fontWeight: "bold" }}>
-          Total Sale Amount: ${items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0).toFixed(2)}
+          Total Sale Amount: $
+          {items
+            .reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+            .toFixed(2)}
         </div>
       )}
     </div>

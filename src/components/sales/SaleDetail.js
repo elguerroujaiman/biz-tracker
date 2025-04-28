@@ -21,7 +21,9 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
       }
     };
 
-    fetchSaleDetails();
+    if (sale_id) {
+      fetchSaleDetails();
+    }
   }, [sale_id]);
 
   if (loading) {

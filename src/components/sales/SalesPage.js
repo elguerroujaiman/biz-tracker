@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { authFetch } from "../../utils/api";
 import SaleForm from "./SaleForm";
 import SaleDetail from "./SaleDetail";
@@ -8,32 +8,38 @@ const SalesPage = () => {
   const [sales, setSales] = useState([]);
   const [selectedSaleId, setSelectedSaleId] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [statsUpdatedAt, setStatsUpdatedAt] = useState(Date.now());
+
+  const fetchSales = useCallback(async () => {
+    try {
+      const response = await authFetch("/sales");
+      let data = await response.json();
+
+      if (!Array.isArray(data)) {
+        data = [data];
+      }
+
+      setSales(data);
+    } catch (error) {
+      console.error("Error fetching sales:", error);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchSales = async () => {
-      try {
-        const response = await authFetch("/sales");
-        let data = await response.json();
-        
-        // 🛠 Make sure data is an array
-        if (!Array.isArray(data)) {
-          data = [data];
-        }
-
-        setSales(data);
-      } catch (error) {
-        console.error("Error fetching sales:", error);
-      }
-    };
-
     fetchSales();
-  }, []);
+  }, [fetchSales]);
+
+  const handleSaleCreated = () => {
+    fetchSales();            // refresh sales list
+    setStatsUpdatedAt(Date.now()); // trigger stats refresh
+    setShowForm(false);      // close form after creation
+  };
 
   return (
     <div style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
       <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Sales</h1>
 
-      <SalesStats />
+      <SalesStats key={statsUpdatedAt} />
 
       <button
         style={{
@@ -50,7 +56,7 @@ const SalesPage = () => {
         {showForm ? "Close Sale Form" : "Create New Sale"}
       </button>
 
-      {showForm && <SaleForm />}
+      {showForm && <SaleForm onSaleCreated={handleSaleCreated} />}
 
       <h2 style={{ marginTop: "2rem", fontSize: "1.5rem" }}>All Sales</h2>
       <ul style={{ listStyle: "none", padding: 0 }}>
@@ -76,7 +82,7 @@ const SalesPage = () => {
 
       {selectedSaleId && (
         <div style={{ marginTop: "2rem" }}>
-          <SaleDetail sale_id={selectedSaleId} />
+          <SaleDetail sale_id={selectedSaleId} key={selectedSaleId} />
         </div>
       )}
     </div>
