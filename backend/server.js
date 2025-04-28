@@ -7,6 +7,7 @@ const jwt = require("jsonwebtoken");
 
 const authRoutes = require("./routes/authRoutes");              // <-- added
 const productRoutes = require("./routes/productRoutes");        // <-- added
+const salesRoutes = require("./routes/sales");
 
 dotenv.config();
 
@@ -37,7 +38,7 @@ db.connect((err) => {
 // Routes
 app.use("/api/auth", authRoutes);         // Handles /login etc.
 app.use("/api/products", productRoutes);  // Handles product APIs
-
+app.use("/api/sales", salesRoutes);
 // Start the server
 app.listen(5000, () => {
   console.log("Server running on port 5000");

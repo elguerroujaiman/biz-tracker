@@ -1,35 +1,28 @@
-import React, { Component } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-function LoginWrapper(props) {
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
-  return <Login {...props} navigate={navigate} />;
-}
 
-class Login extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      email: '',
-      password: '',
-      rememberMe: false,
-      error: '',
-    };
-  }
-
-  componentDidMount() {
+  useEffect(() => {
     const savedEmail = localStorage.getItem("rememberEmail");
     const savedPassword = localStorage.getItem("rememberPassword");
-    if (savedEmail && savedPassword) {
-      this.setState({
-        email: savedEmail,
-        password: savedPassword,
-        rememberMe: true,
-      });
-    }
-  }
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
-  handleSubmit = async (e) => {
+    
+
+    if (savedEmail && savedPassword) {
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setRememberMe(true);
+    }
+  }, [navigate]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
@@ -38,89 +31,83 @@ class Login extends Component {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: this.state.email,
-          password: this.state.password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.token) {
-        const storage = this.state.rememberMe ? localStorage : sessionStorage;
+        const storage = rememberMe ? localStorage : sessionStorage;
         storage.setItem("token", data.token);
         storage.setItem("userDetails", JSON.stringify(data.user));
 
-        // If Remember Me is checked, save email & password in localStorage
-        if (this.state.rememberMe) {
-          localStorage.setItem("rememberEmail", this.state.email);
-          localStorage.setItem("rememberPassword", this.state.password);
+        if (rememberMe) {
+          localStorage.setItem("rememberEmail", email);
+          localStorage.setItem("rememberPassword", password);
         } else {
           localStorage.removeItem("rememberEmail");
           localStorage.removeItem("rememberPassword");
         }
 
-        this.props.navigate("/home");
+        navigate("/home");
       } else {
-        this.setState({ error: data.message });
+        setError(data.message || "Login failed.");
       }
     } catch (err) {
       console.error(err);
-      this.setState({ error: "Something went wrong. Please try again." });
+      setError("Something went wrong. Please try again.");
     }
   };
 
-  render() {
-    return (
-      <div className="d-flex align-items-center loginBox">
-        <form onSubmit={this.handleSubmit} className="form-signin bg-white">
-          <h3>Login</h3>
-          {this.state.error && <div className="text-danger">{this.state.error}</div>}
-          
+  return (
+    <div className="d-flex align-items-center loginBox">
+      <form onSubmit={handleSubmit} className="form-signin bg-white">
+        <h3>Login</h3>
+        {error && <div className="text-danger">{error}</div>}
+
+        <input
+          type="email"
+          className="form-control mt-3"
+          placeholder="Email address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+
+        <input
+          type="password"
+          className="form-control"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          required
+        />
+
+        <div className="form-check mt-2 mb-2">
           <input
-            type="email"
-            className="form-control mt-3"
-            placeholder="Email address"
-            value={this.state.email}
-            onChange={(e) => this.setState({ email: e.target.value })}
-            required
+            type="checkbox"
+            className="form-check-input"
+            id="rememberMe"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
           />
+          <label className="form-check-label" htmlFor="rememberMe">
+            Remember Me
+          </label>
+        </div>
 
-          <input
-            type="password"
-            className="form-control"
-            value={this.state.password}
-            onChange={(e) => this.setState({ password: e.target.value })}
-            placeholder="Password"
-            required
-          />
+        <div className="d-grid my-2">
+          <button type="submit" className="btn btn-primary btn-block mb-3">
+            Login
+          </button>
+        </div>
 
-          <div className="form-check mt-2 mb-2">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="rememberMe"
-              checked={this.state.rememberMe}
-              onChange={(e) => this.setState({ rememberMe: e.target.checked })}
-            />
-            <label className="form-check-label" htmlFor="rememberMe">
-              Remember Me
-            </label>
-          </div>
+        <div className="forgot-password form-inline">
+          New user? <Link to="/signup">Signup</Link>
+        </div>
+      </form>
+    </div>
+  );
+};
 
-          <div className="d-grid my-2">
-            <button type="submit" className="btn btn-primary btn-block mb-3">
-              Login
-            </button>
-          </div>
-
-          <div className="forgot-password form-inline">
-            New user? <Link to="/signup">Signup</Link>
-          </div>
-        </form>
-      </div>
-    );
-  }
-}
-
-export default LoginWrapper;
+export default Login;

@@ -7,6 +7,8 @@ function Inventory() {
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const fetchProducts = async () => {
     try {
@@ -27,11 +29,16 @@ function Inventory() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
+  const requestDelete = (id) => {
+    setDeleteId(id);
+    setConfirmDelete(true);
+  };
+
+  const handleDelete = async () => {
     try {
-      await authFetch(`/products/${id}`, {
-        method: "DELETE",
-      });
+      await authFetch(`/products/${deleteId}`, { method: "DELETE" });
+      setConfirmDelete(false);
+      setDeleteId(null);
       fetchProducts(); // Refresh list
     } catch (err) {
       console.error("Error deleting product:", err);
@@ -83,7 +90,7 @@ function Inventory() {
                   <Button
                     size="sm"
                     variant="danger"
-                    onClick={() => handleDelete(product.product_id)}
+                    onClick={() => requestDelete(product.product_id)}
                   >
                     Delete
                   </Button>
@@ -102,13 +109,26 @@ function Inventory() {
 
       <Modal show={showForm} onHide={handleCloseForm}>
         <Modal.Header closeButton>
-          <Modal.Title>
-            {editingProduct ? "Edit Product" : "Add Product"}
-          </Modal.Title>
+          <Modal.Title>{editingProduct ? "Edit Product" : "Add Product"}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <ProductForm product={editingProduct} onClose={handleCloseForm} />
         </Modal.Body>
+      </Modal>
+
+      <Modal show={confirmDelete} onHide={() => setConfirmDelete(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Deletion</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Are you sure you want to delete this product?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setConfirmDelete(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete}>
+            Delete
+          </Button>
+        </Modal.Footer>
       </Modal>
     </div>
   );

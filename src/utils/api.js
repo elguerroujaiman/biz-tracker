@@ -1,4 +1,7 @@
-const API_BASE = "http://localhost:5000/api";
+const API_BASE =
+  process.env.NODE_ENV === "development"
+    ? "/api"
+    : "https://localhost:5000/api";
 
 export const authFetch = (url, options = {}) => {
   const token = localStorage.getItem("token") || sessionStorage.getItem("token");
