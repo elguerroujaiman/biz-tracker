@@ -5,9 +5,10 @@ const mysql = require("mysql2");
 const dotenv = require("dotenv");
 const jwt = require("jsonwebtoken");
 
-const authRoutes = require("./routes/authRoutes");              // <-- added
-const productRoutes = require("./routes/productRoutes");        // <-- added
+const authRoutes = require("./routes/authRoutes");
+const productRoutes = require("./routes/productRoutes");
 const salesRoutes = require("./routes/sales");
+const purchaseRoutes = require("./routes/purchases");
 
 dotenv.config();
 
@@ -16,13 +17,13 @@ const app = express();
 const corsOptions = {
   origin: "http://localhost:3001",
   methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],           // <-- added Authorization for token later
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Database connection (you can optionally move to a separate file)
+// Database connection
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -36,9 +37,10 @@ db.connect((err) => {
 });
 
 // Routes
-app.use("/api/auth", authRoutes);         // Handles /login etc.
-app.use("/api/products", productRoutes);  // Handles product APIs
+app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
 app.use("/api/sales", salesRoutes);
+app.use("/api/purchases", purchaseRoutes); 
 // Start the server
 app.listen(5000, () => {
   console.log("Server running on port 5000");

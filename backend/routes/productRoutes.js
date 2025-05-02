@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const productController = require("../controllers/productController");
-const authenticateToken = require("../middleware/authMiddleware"); // <-- import middleware
+const authenticateToken = require("../middleware/authMiddleware");
 
-// CRUD Endpoints with auth
 router.get("/", authenticateToken, productController.getAllProducts);
 router.post("/", authenticateToken, productController.createProduct);
 router.put("/:id", authenticateToken, productController.updateProduct);

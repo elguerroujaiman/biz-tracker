@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const salesController = require("../controllers/salesController");
-const authenticateToken = require("../middleware/authMiddleware"); // or wherever your auth middleware is
+const authenticateToken = require("../middleware/authMiddleware");
 
 router.post("/", authenticateToken, salesController.createSale);
 router.get("/", authenticateToken, salesController.getSales);

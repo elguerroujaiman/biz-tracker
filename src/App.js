@@ -4,7 +4,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import { Toaster } from "react-hot-toast"; // ✅ NEW
+import { Toaster } from "react-hot-toast";
 
 import Login from "./components/Login";
 import SignUp from "./components/Signup";
@@ -19,10 +19,16 @@ import SaleForm from "./components/sales/SaleForm";
 import SaleDetail from "./components/sales/SaleDetail";
 import SalesStats from "./components/sales/SalesStats";
 
+// Purchases Components
+import PurchasesPage from "./components/purchases/PurchasesPage";
+import PurchaseForm from "./components/purchases/PurchaseForm";
+import PurchaseDetail from "./components/purchases/PurchaseDetail";
+import PurchaseStats from "./components/purchases/PurchaseStats";
+
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-right" /> {/* ✅ NEW: This renders toast notifications globally */}
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/signin" element={<Login />} />
@@ -93,6 +99,52 @@ function App() {
               <>
                 <Navbar />
                 <SalesStats />
+              </>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Purchases Routes */}
+        <Route
+          path="/purchases"
+          element={
+            <PrivateRoute>
+              <>
+                <Navbar />
+                <PurchasesPage />
+              </>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/purchases/new"
+          element={
+            <PrivateRoute>
+              <>
+                <Navbar />
+                <PurchaseForm />
+              </>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/purchases/:purchase_id"
+          element={
+            <PrivateRoute>
+              <>
+                <Navbar />
+                <PurchaseDetail />
+              </>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/purchases/stats"
+          element={
+            <PrivateRoute>
+              <>
+                <Navbar />
+                <PurchaseStats />
               </>
             </PrivateRoute>
           }
