@@ -218,6 +218,31 @@ exports.getSalesStats = async (req, res) => {
       [user_id]
     );
 
+    // New additions
+    const [topProducts] = await db.query(
+      `SELECT p.name AS product_name, SUM(si.quantity) AS total_units
+       FROM sale_items si
+       JOIN products p ON si.product_id = p.product_id
+       JOIN sales s ON si.sale_id = s.sale_id
+       WHERE s.user_id = ?
+       GROUP BY p.name
+       ORDER BY total_units DESC
+       LIMIT 5`,
+      [user_id]
+    );
+
+    const [revenueByProduct] = await db.query(
+      `SELECT p.name AS product_name, SUM(si.total_price) AS revenue
+       FROM sale_items si
+       JOIN products p ON si.product_id = p.product_id
+       JOIN sales s ON si.sale_id = s.sale_id
+       WHERE s.user_id = ?
+       GROUP BY p.name
+       ORDER BY revenue DESC
+       LIMIT 5`,
+      [user_id]
+    );
+
     const totalSales = totalSalesResult.total_sales || 0;
     const totalUnits = totalUnitsResult.total_units_sold || 0;
 
@@ -231,6 +256,8 @@ exports.getSalesStats = async (req, res) => {
       total_units_sold: totalUnits,
       average_order_size: totalSales > 0 ? totalUnits / totalSales : 0,
       highest_single_sale: Number(highestSingleSale?.highest_sale || 0),
+      top_products: topProducts || [],
+      revenue_by_product: revenueByProduct || [],
     });
   } catch (err) {
     console.error("Error fetching sales stats:", err);

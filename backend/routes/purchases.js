@@ -7,5 +7,6 @@ router.post("/", authenticateToken, purchasesController.createPurchase);
 router.get("/", authenticateToken, purchasesController.getPurchases);
 router.get("/stats", authenticateToken, purchasesController.getPurchaseStats);
 router.get("/:purchase_id", authenticateToken, purchasesController.getPurchaseById);
+router.put("/:purchase_id", authenticateToken, purchasesController.updatePurchase);
 
 module.exports = router;
