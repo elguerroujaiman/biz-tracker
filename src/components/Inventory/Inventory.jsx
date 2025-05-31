@@ -1,21 +1,41 @@
 import React, { useEffect, useState } from "react";
 import ProductForm from "./ProductForm";
-import { Button, Table, Modal } from "react-bootstrap";
+import { Button, Table, Modal, Form, InputGroup, Dropdown } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
-import { toast } from "react-hot-toast"; // Toast import
+import { toast } from "react-hot-toast";
+import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 
 function Inventory() {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
+  const sortOptions = [
+    { label: "Name", value: "name" },
+    { label: "Category", value: "category" },
+    { label: "Quantity", value: "total_quantity" },
+    { label: "Unit Price", value: "unit_price" },
+    { label: "Created At", value: "created_at" },
+    { label: "Updated At", value: "updated_at" },
+  ];
+
   const fetchProducts = async () => {
     try {
-      const res = await authFetch("/products");
+      const res = await authFetch(`/products?sortBy=${sortBy}&sortOrder=${sortOrder}`);
       const data = await res.json();
-      setProducts(data);
+
+      if (Array.isArray(data)) {
+        setProducts(data);
+      } else {
+        console.error("Unexpected response format:", data);
+        toast.error("Unexpected server response.");
+      }
     } catch (err) {
       console.error("Error fetching products:", err);
       toast.error("Failed to load products.");
@@ -24,7 +44,43 @@ function Inventory() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [sortBy, sortOrder]);
+
+  useEffect(() => {
+    let filtered = [...products];
+
+    if (searchTerm) {
+      filtered = filtered.filter((product) =>
+        product.name.toLowerCase().startsWith(searchTerm.toLowerCase())
+      );
+    }
+
+    filtered.sort((a, b) => {
+      const valA = a[sortBy];
+      const valB = b[sortBy];
+
+      if (valA == null || valB == null) return 0;
+
+      if (typeof valA === "string") {
+        return sortOrder === "asc"
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA);
+      }
+
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    });
+
+    setFilteredProducts(filtered);
+  }, [searchTerm, products, sortBy, sortOrder]);
+
+  const toggleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
+  };
 
   const handleEdit = (product) => {
     setEditingProduct(product);
@@ -54,7 +110,6 @@ function Inventory() {
     }
   };
 
-  // FIXED: handleCloseForm now accepts a 'refresh' argument
   const handleCloseForm = (refresh = false, isEdit = false) => {
     setShowForm(false);
     setEditingProduct(null);
@@ -71,6 +126,42 @@ function Inventory() {
         <Button onClick={() => setShowForm(true)}>Add Product</Button>
       </div>
 
+      {/* Search and Sort Bar */}
+      <div className="d-flex mb-3 gap-2 align-items-center">
+        <InputGroup className="flex-grow-1">
+          <Form.Control
+            type="text"
+            placeholder="Search by product name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </InputGroup>
+
+        <Dropdown>
+          <Dropdown.Toggle variant="outline-primary" id="dropdown-sort">
+            Sort By: {sortOptions.find((opt) => opt.value === sortBy)?.label}
+            {sortOrder === "asc" ? (
+              <IoIosArrowDown className="ms-2" />
+            ) : (
+              <IoIosArrowUp className="ms-2" />
+            )}
+          </Dropdown.Toggle>
+          <Dropdown.Menu>
+            {sortOptions.map((option) => (
+              <Dropdown.Item key={option.value} onClick={() => toggleSort(option.value)}>
+                {option.label}
+                {sortBy === option.value &&
+                  (sortOrder === "asc" ? (
+                    <IoIosArrowDown className="ms-2" />
+                  ) : (
+                    <IoIosArrowUp className="ms-2" />
+                  ))}
+              </Dropdown.Item>
+            ))}
+          </Dropdown.Menu>
+        </Dropdown>
+      </div>
+
       <Table striped bordered hover responsive>
         <thead>
           <tr>
@@ -83,8 +174,8 @@ function Inventory() {
           </tr>
         </thead>
         <tbody>
-          {products.length ? (
-            products.map((product) => (
+          {Array.isArray(filteredProducts) && filteredProducts.length > 0 ? (
+            filteredProducts.map((product) => (
               <tr key={product.product_id}>
                 <td>{product.product_id}</td>
                 <td>{product.name}</td>
@@ -120,12 +211,12 @@ function Inventory() {
         </tbody>
       </Table>
 
+      {/* Add/Edit Form Modal */}
       <Modal show={showForm} onHide={() => handleCloseForm(false)}>
         <Modal.Header closeButton>
           <Modal.Title>{editingProduct ? "Edit Product" : "Add Product"}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {/* Pass refresh and edit flags from ProductForm */}
           <ProductForm
             product={editingProduct}
             onClose={(refresh) => handleCloseForm(refresh, !!editingProduct)}
@@ -133,6 +224,7 @@ function Inventory() {
         </Modal.Body>
       </Modal>
 
+      {/* Delete Confirmation Modal */}
       <Modal show={confirmDelete} onHide={() => setConfirmDelete(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Confirm Deletion</Modal.Title>

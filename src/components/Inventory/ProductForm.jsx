@@ -12,14 +12,19 @@ function ProductForm({ product, onClose }) {
   });
   const [loading, setLoading] = useState(false);
 
+  const [initialForm, setInitialForm] = useState(null);
+
   useEffect(() => {
     if (product) {
-      setForm({
+      const productData = {
         name: product.name,
         category: product.category,
         unit_price: product.unit_price,
         total_quantity: product.total_quantity,
-      });
+      };
+
+      setForm(productData);
+      setInitialForm(productData); // Save original values
     }
   }, [product]);
 
@@ -31,32 +36,53 @@ function ProductForm({ product, onClose }) {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const method = product ? "PUT" : "POST";
-      const url = product ? `/products/${product.product_id}` : "/products";
+  e.preventDefault();
 
-      const res = await authFetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+  const price = parseFloat(form.unit_price);
+  const quantity = parseFloat(form.total_quantity);
 
-      if (res.ok) {
-        onClose(true); // <--- Refresh Inventory and show success toast
-      } else {
-        const errorData = await res.json();
-        console.error("Save error:", errorData);
-        toast.error(errorData.message || "Failed to save product.");
-      }
-    } catch (error) {
-      console.error("Save error:", error);
-      toast.error("Failed to save product.");
-    } finally {
-      setLoading(false);
+  if (price < 0 || quantity < 0) {
+    toast.error("Price and total quantity must not be negative.");
+    return;
+  }
+
+  // Only check for changes if editing
+  if (product && initialForm) {
+    const noChanges = Object.keys(initialForm).every(
+      (key) => String(form[key]) === String(initialForm[key])
+    );
+
+    if (noChanges) {
+      toast.error("No changes detected.");
+      return;
     }
-  };
+  }
+
+  setLoading(true);
+  try {
+    const method = product ? "PUT" : "POST";
+    const url = product ? `/products/${product.product_id}` : "/products";
+
+    const res = await authFetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+
+    if (res.ok) {
+      onClose(true);
+    } else {
+      const errorData = await res.json();
+      console.error("Save error:", errorData);
+      toast.error(errorData.message || "Failed to save product.");
+    }
+  } catch (error) {
+    console.error("Save error:", error);
+    toast.error("Failed to save product.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleCancel = () => {
     onClose(false); // <--- Just close without refreshing or showing success toast

@@ -1,11 +1,29 @@
 const db = require("../config/db"); // Reuse the shared DB pool
 
-// GET all products for the logged-in user
+// GET all products for the logged-in user with optional sorting
 exports.getAllProducts = async (req, res) => {
   const userId = req.user.id;
+  const allowedSortFields = [
+    "name",
+    "category",
+    "total_quantity",
+    "unit_price",
+    "created_at",
+    "updated_at",
+  ];
+
+  // Get sorting params from query
+  let { sortBy = "name", order = "asc" } = req.query;
+
+  // Validate sort field and direction
+  sortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
+  order = order.toLowerCase() === "desc" ? "DESC" : "ASC";
 
   try {
-    const [results] = await db.query("SELECT * FROM products WHERE user_id = ?", [userId]);
+    const [results] = await db.query(
+      `SELECT * FROM products WHERE user_id = ? ORDER BY ${sortBy} ${order}`,
+      [userId]
+    );
     res.json(results);
   } catch (err) {
     console.error("Error fetching products:", err);
