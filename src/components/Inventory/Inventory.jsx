@@ -162,7 +162,7 @@ function Inventory() {
         </Dropdown>
       </div>
 
-      <Table striped bordered hover responsive>
+      <Table striped bordered hover responsive className="text-center">
         <thead>
           <tr>
             <th>ID</th>
@@ -170,6 +170,8 @@ function Inventory() {
             <th>Category</th>
             <th>Unit Price</th>
             <th>Total Quantity</th>
+            <th>Created At</th>
+            <th>Updated At</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -182,6 +184,8 @@ function Inventory() {
                 <td>{product.category}</td>
                 <td>${product.unit_price}</td>
                 <td>{product.total_quantity}</td>
+                <td>{new Date(product.created_at).toLocaleString("en-GB")}</td>
+                <td>{new Date(product.updated_at).toLocaleString("en-GB")}</td>
                 <td>
                   <Button
                     size="sm"
