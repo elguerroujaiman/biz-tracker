@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { authFetch } from "../../utils/api";
+import { Spinner, Table } from "react-bootstrap";
 
 const SaleDetail = ({ sale_id: propSaleId }) => {
   const { sale_id: paramSaleId } = useParams();
@@ -26,30 +27,41 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
     }
   }, [sale_id]);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  if (loading) return <Spinner animation="border" size="sm" />;
 
-  if (!sale) {
-    return <div>Sale not found</div>;
-  }
+  if (!sale) return <div>Sale not found.</div>;
 
   return (
-    <div style={{ padding: "1rem", border: "1px solid #ccc", borderRadius: "8px" }}>
-      <h2>Sale Details</h2>
+    <div>
+      <h5>Sale Details</h5>
       <p><strong>Sale ID:</strong> {sale.sale_id}</p>
-      <p><strong>Total Amount:</strong> ${sale.total_amount}</p>
-      <p><strong>Sale Date:</strong> {new Date(sale.sale_date).toLocaleString()}</p>
-      <p><strong>Note:</strong> {sale.note || "No note available"}</p>
+      <p><strong>Date:</strong> {new Date(sale.sale_date).toLocaleString("en-GB")}</p>
+      <p><strong>Total Amount:</strong> ${Number(sale.total_amount).toFixed(2)}</p>
+      <p><strong>Note:</strong> {sale.note || "No note provided."}</p>
 
-      <h3 style={{ marginTop: "1rem" }}>Items</h3>
-      <ul style={{ paddingLeft: "1.5rem" }}>
-        {sale.items?.map((item, index) => (
-          <li key={index}>
-            {item.product_name} ({item.category}) - {item.quantity} × ${item.unit_price} = ${item.total_price}
-          </li>
-        ))}
-      </ul>
+      <h6 className="mt-3">Items</h6>
+      <Table striped bordered hover size="sm" responsive>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Quantiy</th>
+            <th>Unit Price</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sale.items?.map((item, idx) => (
+            <tr key={idx}>
+              <td>{item.product_name}</td>
+              <td>{item.category}</td>
+              <td>{item.quantity}</td>
+              <td>${item.unit_price.toFixed(2)}</td>
+              <td>${item.total_price.toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
     </div>
   );
 };

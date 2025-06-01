@@ -3,7 +3,6 @@ import ProductForm from "./ProductForm";
 import { Button, Table, Modal, Form, InputGroup, Dropdown } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
 import { toast } from "react-hot-toast";
-import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 
 function Inventory() {
   const [products, setProducts] = useState([]);
@@ -123,7 +122,7 @@ function Inventory() {
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Inventory</h2>
-        <Button onClick={() => setShowForm(true)}>Add Product</Button>
+        <Button onClick={() => setShowForm(true)}>+ Add Product</Button>
       </div>
 
       {/* Search and Sort Bar */}
@@ -140,22 +139,14 @@ function Inventory() {
         <Dropdown>
           <Dropdown.Toggle variant="outline-primary" id="dropdown-sort">
             Sort By: {sortOptions.find((opt) => opt.value === sortBy)?.label}
-            {sortOrder === "asc" ? (
-              <IoIosArrowDown className="ms-2" />
-            ) : (
-              <IoIosArrowUp className="ms-2" />
-            )}
+            {sortOrder === "asc" ? " ↓" : " ↑" }
           </Dropdown.Toggle>
           <Dropdown.Menu>
             {sortOptions.map((option) => (
               <Dropdown.Item key={option.value} onClick={() => toggleSort(option.value)}>
                 {option.label}
                 {sortBy === option.value &&
-                  (sortOrder === "asc" ? (
-                    <IoIosArrowDown className="ms-2" />
-                  ) : (
-                    <IoIosArrowUp className="ms-2" />
-                  ))}
+                  (sortOrder === "asc" ? " ↓" : " ↑")}
               </Dropdown.Item>
             ))}
           </Dropdown.Menu>

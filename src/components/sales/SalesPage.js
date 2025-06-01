@@ -1,17 +1,18 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { authFetch } from "../../utils/api";
+import {Modal,Button,Card,Form,Container,Row,Col,Dropdown,Collapse} from "react-bootstrap";
 import SaleForm from "./SaleForm";
 import SaleDetail from "./SaleDetail";
-import SalesStats from "./SalesStats";
-import ExportCSVButton from "./ExportCSVButton";
+import { GrMoney } from "react-icons/gr";
 
 const SalesPage = () => {
   const [sales, setSales] = useState([]);
-  const [selectedSaleId, setSelectedSaleId] = useState(null);
+  const [expandedSaleId, setExpandedSaleId] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [statsUpdatedAt, setStatsUpdatedAt] = useState(Date.now());
   const [filterText, setFilterText] = useState("");
   const [filteredSales, setFilteredSales] = useState([]);
+  const [sortBy, setSortBy] = useState("Sale ID");
+  const [sortAsc, setSortAsc] = useState(true);
 
   const fetchSales = useCallback(async () => {
     try {
@@ -28,87 +29,140 @@ const SalesPage = () => {
     fetchSales();
   }, [fetchSales]);
 
+  // Filter & sort sales
   useEffect(() => {
-    if (!filterText) {
-      setFilteredSales(sales);
-    } else {
-      setFilteredSales(
-        sales.filter(s =>
-          s.note?.toLowerCase().includes(filterText.toLowerCase()) ||
-          s.sale_id.toString().includes(filterText)
-        )
+    let updated = [...sales];
+
+    if (filterText) {
+      updated = updated.filter(s =>
+        s.note?.toLowerCase().startsWith(filterText.toLowerCase()) ||
+        s.sale_id.toString().startsWith(filterText)
       );
     }
-  }, [sales, filterText]);
+
+    updated.sort((a, b) => {
+      const getValue = (sale) => {
+        if (sortBy === "Sale ID") return sale.sale_id;
+        if (sortBy === "Total Amount") return Number(sale.total_amount);
+        return new Date(sale.sale_date);
+      };
+
+      const aValue = getValue(a);
+      const bValue = getValue(b);
+
+      if (aValue < bValue) return sortAsc ? -1 : 1;
+      if (aValue > bValue) return sortAsc ? 1 : -1;
+      return 0;
+    });
+
+    setFilteredSales(updated);
+  }, [sales, filterText, sortBy, sortAsc]);
 
   const handleSaleCreated = () => {
     fetchSales();
-    setStatsUpdatedAt(Date.now());
     setShowForm(false);
   };
 
+  const toggleExpanded = (saleId) => {
+    setExpandedSaleId(prev => (prev === saleId ? null : saleId));
+  };
+
+  const handleSortChange = (criterion) => {
+    if (sortBy === criterion) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortBy(criterion);
+      setSortAsc(true);
+    }
+  };
+
+  const getArrow = (criterion) =>
+    sortBy === criterion ? (sortAsc ? "↓" : "↑") : "";
+
   return (
-    <div style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Sales</h1>
+    <Container style={{ paddingTop: "2rem", maxWidth: "900px" }}>
+      <Row className="align-items-center mb-4">
+        <Col>
+          <h2 style={{ fontWeight: "bold" }}>Sales</h2>
+        </Col>
+        <Col className="text-end">
+          <Button variant="primary" onClick={() => setShowForm(true)}>
+            + Add Sale
+          </Button>
+        </Col>
+      </Row>
 
-      <SalesStats key={statsUpdatedAt} />
+      {/* Search + Sort */}
+      <Row className="mb-4 gx-2 align-items-center">
+        <Col xs="auto" style={{ flexGrow: 1 }}>
+          <Form.Control
+            type="text"
+            placeholder="Search by Sale ID or Note"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+          />
+        </Col>
+        <Col xs="auto">
+          <Dropdown onSelect={handleSortChange}>
+            <Dropdown.Toggle variant="outline-secondary" id="dropdown-sort">
+              Sort By: {sortBy} {getArrow(sortBy)}
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item eventKey="Sale ID">
+                Sale ID {getArrow("Sale ID")}
+              </Dropdown.Item>
+              <Dropdown.Item eventKey="Total Amount">
+                Total Amount {getArrow("Total Amount")}
+              </Dropdown.Item>
+              <Dropdown.Item eventKey="Created At">
+                Created At {getArrow("Created At")}
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        </Col>
+      </Row>
 
-      <button
-        onClick={() => setShowForm(!showForm)}
-        style={{
-          margin: "1rem 0",
-          padding: "0.5rem 1rem",
-          backgroundColor: "#4CAF50",
-          color: "white",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-        }}
-      >
-        {showForm ? "Close Sale Form" : "Create New Sale"}
-      </button>
+      {/* Add Sale Modal */}
+      <Modal show={showForm} onHide={() => setShowForm(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>New Sale</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <SaleForm onSaleCreated={handleSaleCreated} />
+        </Modal.Body>
+      </Modal>
 
-      {showForm && <SaleForm onSaleCreated={handleSaleCreated} />}
-
-      <div style={{ marginTop: "2rem", display: "flex", justifyContent: "space-between" }}>
-        <input
-          type="text"
-          placeholder="Search by Sale ID or Note"
-          value={filterText}
-          onChange={(e) => setFilterText(e.target.value)}
-          style={{ flex: 1, padding: "0.5rem", marginRight: "1rem" }}
-        />
-        <ExportCSVButton data={filteredSales} filename="sales_export.csv" />
-      </div>
-
-      <h2 style={{ marginTop: "2rem", fontSize: "1.5rem" }}>All Sales</h2>
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {filteredSales.map((sale) => (
-          <li key={sale.sale_id} style={{ margin: "0.5rem 0" }}>
-            <button
-              onClick={() => setSelectedSaleId(sale.sale_id)}
-              style={{
-                width: "100%",
-                textAlign: "left",
-                padding: "0.75rem",
-                backgroundColor: "#f1f1f1",
-                border: "1px solid #ccc",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
+      {/* Sales List */}
+      {filteredSales.length === 0 ? (
+        <div className="text-center text-muted mt-5">No sales found</div>
+      ) : (
+        filteredSales.map((sale) => (
+          <Card key={sale.sale_id} className="mb-3 shadow-sm">
+            <Card.Body
+              onClick={() => toggleExpanded(sale.sale_id)}
+              style={{ cursor: "pointer" }}
             >
-              Sale #{sale.sale_id} - {new Date(sale.sale_date).toLocaleString()} - ${sale.total_amount}
-            </button>
-          </li>
-        ))}
-      </ul>
+              <Card.Title>
+                <strong>Sale {sale.sale_id}</strong> :{" "}
+                {new Date(sale.sale_date).toLocaleDateString("en-GB")}
+              </Card.Title>
+              <Card.Subtitle className="mb-2 text-muted">
+              <GrMoney /> ${Number(sale.total_amount).toFixed(2)}
+              </Card.Subtitle>
+              {sale.note && <Card.Text>📝 {sale.note}</Card.Text>}
+            </Card.Body>
 
-      {selectedSaleId && (
-        <div style={{ marginTop: "2rem" }}>
-          <SaleDetail sale_id={selectedSaleId} key={selectedSaleId} />
-        </div>
+            <Collapse in={expandedSaleId === sale.sale_id}>
+              <div>
+                <Card.Footer style={{ backgroundColor: "#f9f9f9" }}>
+                  <SaleDetail sale_id={sale.sale_id} />
+                </Card.Footer>
+              </div>
+            </Collapse>
+          </Card>
+        ))
       )}
-    </div>
+    </Container>
   );
 };
 

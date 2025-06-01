@@ -1,243 +1,184 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { authFetch } from "../../utils/api";
-import { toast } from "react-hot-toast"; // <-- ADDED this import
+import { Form, Button, Table } from "react-bootstrap";
+import { toast } from "react-hot-toast";
 
 const SaleForm = ({ onSaleCreated }) => {
-  const [items, setItems] = useState([]);
-  const [note, setNote] = useState("");
-  const [product_id, setProductId] = useState("");
+  const [products, setProducts] = useState([]);
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [unitPrice, setUnitPrice] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [unit_price, setUnitPrice] = useState("");
-  const [editIndex, setEditIndex] = useState(null);
+  const [note, setNote] = useState("");
+  const [saleItems, setSaleItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const addItem = () => {
-    if (!product_id || !quantity || !unit_price) {
-      toast.error("Please fill all item fields before adding.");
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await authFetch("/products");
+        const data = await response.json();
+        setProducts(data);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        toast.error("Failed to load products");
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const handleAddItem = () => {
+    if (!selectedProductId || Number(unitPrice) <= 0 || Number(quantity) <= 0) {
+      toast.error("Please select a product and provide valid unit price and quantity.");
       return;
     }
 
+    const product = products.find((p) => p.product_id === Number(selectedProductId));
     const newItem = {
-      product_id,
-      quantity: parseInt(quantity),
-      unit_price: parseFloat(unit_price),
+      product_id: Number(selectedProductId),
+      product_name: product?.name,
+      unit_price: Number(unitPrice),
+      quantity: Number(quantity),
     };
 
-    if (editIndex !== null) {
-      const updatedItems = [...items];
-      updatedItems[editIndex] = newItem;
-      setItems(updatedItems);
-      setEditIndex(null);
-    } else {
-      setItems([...items, newItem]);
-    }
-
-    setProductId("");
-    setQuantity("");
+    setSaleItems((prev) => [...prev, newItem]);
+    setSelectedProductId("");
     setUnitPrice("");
+    setQuantity("");
   };
 
-  const handleEdit = (index) => {
-    const item = items[index];
-    setProductId(item.product_id);
-    setQuantity(item.quantity);
-    setUnitPrice(item.unit_price);
-    setEditIndex(index);
-  };
-
-  const handleDelete = (index) => {
-    const updatedItems = items.filter((_, i) => i !== index);
-    setItems(updatedItems);
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (items.length === 0) {
-      toast.error("Please add at least one item to the sale.");
+  const handleSubmitSale = async () => {
+    if (saleItems.length === 0) {
+      toast.error("You must add at least one item to create a sale.");
       return;
     }
 
-    const saleData = { items, note };
+    const saleData = {
+      note,
+      items: saleItems,
+    };
 
     try {
+      setLoading(true);
       const response = await authFetch("/sales", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(saleData),
       });
 
-      if (response.ok) {
-        setItems([]);
-        setNote("");
-        setProductId("");
-        setQuantity("");
-        setUnitPrice("");
-        setEditIndex(null);
-
-        toast.success("Sale created successfully!");
-
-        if (onSaleCreated) {
-          onSaleCreated(); // trigger refresh from parent
-        }
-      } else {
-        console.error("Failed to create sale:", await response.text());
-        toast.error("Failed to create sale.");
+      if (!response.ok) {
+        throw new Error("Sale creation failed");
       }
-    } catch (error) {
-      console.error("Error creating sale:", error);
-      toast.error("Error creating sale.");
+
+      toast.success("Sale created successfully!");
+      onSaleCreated();
+    } catch (err) {
+      console.error("Error creating sale:", err);
+      toast.error("Could not create sale.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div
-      style={{
-        margin: "2rem 0",
-        padding: "1rem",
-        border: "1px solid #ddd",
-        borderRadius: "8px",
-      }}
-    >
-      <h2 style={{ marginBottom: "1rem" }}>Create Sale</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: "1rem" }}>
-          <label>Product ID:</label>
-          <input
-            type="text"
-            value={product_id}
-            onChange={(e) => setProductId(e.target.value)}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "0.5rem",
-              marginTop: "0.5rem",
-            }}
-          />
-        </div>
+  const removeItem = (index) => {
+    setSaleItems((prev) => prev.filter((_, i) => i !== index));
+  };
 
-        <div style={{ marginBottom: "1rem" }}>
-          <label>Quantity:</label>
-          <input
+  return (
+    <>
+      <h5>Add Item to Sale</h5>
+      <Form>
+        <Form.Group className="mb-3">
+          <Form.Label>Product</Form.Label>
+          <Form.Select
+            value={selectedProductId}
+            onChange={(e) => setSelectedProductId(e.target.value)}
+          >
+            <option value="">-- Select a product --</option>
+            {products.map((product) => (
+              <option key={product.product_id} value={product.product_id}>
+                {product.name}
+              </option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Unit Price</Form.Label>
+          <Form.Control
+            type="number"
+            value={unitPrice}
+            onChange={(e) => setUnitPrice(e.target.value)}
+            min="0"
+            step="0.01"
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Quantity</Form.Label>
+          <Form.Control
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "0.5rem",
-              marginTop: "0.5rem",
-            }}
+            min="0"
           />
-        </div>
+        </Form.Group>
 
-        <div style={{ marginBottom: "1rem" }}>
-          <label>Unit Price:</label>
-          <input
-            type="number"
-            value={unit_price}
-            onChange={(e) => setUnitPrice(e.target.value)}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "0.5rem",
-              marginTop: "0.5rem",
-            }}
-          />
-        </div>
+        <Button variant="secondary" type="button" onClick={handleAddItem}>
+          Add Item
+        </Button>
+      </Form>
 
-        <button
-          type="button"
-          onClick={addItem}
-          style={{
-            backgroundColor: editIndex !== null ? "#FFC107" : "#2196F3",
-            color: "white",
-            padding: "0.5rem 1rem",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-            marginBottom: "1rem",
-          }}
-        >
-          {editIndex !== null ? "Update Item" : "Add Item"}
-        </button>
-
-        <div style={{ marginBottom: "1rem" }}>
-          <label>Note:</label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            style={{
-              display: "block",
-              width: "100%",
-              padding: "0.5rem",
-              marginTop: "0.5rem",
-            }}
-          ></textarea>
-        </div>
-
-        <button
-          type="submit"
-          style={{
-            backgroundColor: "#4CAF50",
-            color: "white",
-            padding: "0.75rem 1.5rem",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Create Sale
-        </button>
-      </form>
-
-      <h3 style={{ marginTop: "2rem" }}>Sale Items</h3>
-      <ul>
-        {items.map((item, index) => (
-          <li key={index} style={{ marginBottom: "0.5rem" }}>
-            Product ID: {item.product_id}, Quantity: {item.quantity}, Unit Price: {item.unit_price}
-            <div style={{ marginTop: "0.5rem" }}>
-              <button
-                type="button"
-                onClick={() => handleEdit(index)}
-                style={{
-                  marginRight: "0.5rem",
-                  padding: "0.25rem 0.5rem",
-                  backgroundColor: "#FFC107",
-                  color: "#333",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(index)}
-                style={{
-                  padding: "0.25rem 0.5rem",
-                  backgroundColor: "#F44336",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      {items.length > 0 && (
-        <div style={{ marginTop: "1rem", fontWeight: "bold" }}>
-          Total Sale Amount: $
-          {items
-            .reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
-            .toFixed(2)}
-        </div>
+      {saleItems.length > 0 && (
+        <>
+          <h5 className="mt-4">Sale Items</h5>
+          <Table striped bordered>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Unit Price</th>
+                <th>Quantity</th>
+                <th>Total</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {saleItems.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.product_name}</td>
+                  <td>${item.unit_price.toFixed(2)}</td>
+                  <td>{item.quantity}</td>
+                  <td>${(item.unit_price * item.quantity).toFixed(2)}</td>
+                  <td>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => removeItem(index)}
+                    >
+                      Remove
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </>
       )}
-    </div>
+
+      {/* Note & Submit */}
+      <Form.Group className="mb-3 mt-3">
+        <Form.Label>Note</Form.Label>
+        <Form.Control
+          type="text"
+          placeholder="Optional note"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </Form.Group>
+
+      <Button variant="primary" onClick={handleSubmitSale} disabled={loading}>
+        {loading ? "Submitting..." : "Add Sale"}
+      </Button>
+    </>
   );
 };
 
