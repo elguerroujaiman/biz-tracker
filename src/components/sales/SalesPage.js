@@ -3,6 +3,7 @@ import { authFetch } from "../../utils/api";
 import {Modal,Button,Card,Form,Container,Row,Col,Dropdown,Collapse} from "react-bootstrap";
 import SaleForm from "./SaleForm";
 import SaleDetail from "./SaleDetail";
+import SaleEditForm from "./SaleEditForm";
 import { GrMoney } from "react-icons/gr";
 
 const SalesPage = () => {
@@ -13,6 +14,8 @@ const SalesPage = () => {
   const [filteredSales, setFilteredSales] = useState([]);
   const [sortBy, setSortBy] = useState("Sale ID");
   const [sortAsc, setSortAsc] = useState(true);
+  const [editingSaleId, setEditingSaleId] = useState(null);
+  const [detailsRefreshKey, setDetailsRefreshKey] = useState(0);
 
   const fetchSales = useCallback(async () => {
     try {
@@ -104,7 +107,7 @@ const SalesPage = () => {
         </Col>
         <Col xs="auto">
           <Dropdown onSelect={handleSortChange}>
-            <Dropdown.Toggle variant="outline-secondary" id="dropdown-sort">
+            <Dropdown.Toggle variant="outline-primary" id="dropdown-sort">
               Sort By: {sortBy} {getArrow(sortBy)}
             </Dropdown.Toggle>
             <Dropdown.Menu>
@@ -138,29 +141,77 @@ const SalesPage = () => {
       ) : (
         filteredSales.map((sale) => (
           <Card key={sale.sale_id} className="mb-3 shadow-sm">
-            <Card.Body
-              onClick={() => toggleExpanded(sale.sale_id)}
-              style={{ cursor: "pointer" }}
-            >
-              <Card.Title>
-                <strong>Sale {sale.sale_id}</strong> :{" "}
-                {new Date(sale.sale_date).toLocaleDateString("en-GB")}
-              </Card.Title>
-              <Card.Subtitle className="mb-2 text-muted">
-              <GrMoney /> ${Number(sale.total_amount).toFixed(2)}
+            <Card.Body onClick={() => toggleExpanded(sale.sale_id)} style={{ cursor: "pointer" }}>
+              <div className="d-flex justify-content-between align-items-center flex-wrap">
+                <Card.Title className="mb-0">
+                  <strong>Sale {sale.sale_id}</strong> :{" "}
+                  {new Date(sale.sale_date).toLocaleDateString("en-GB")}
+                </Card.Title>
+                <div className="d-flex gap-2">
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingSaleId(sale.sale_id); // Open edit modal
+                    }}
+                  >
+                    Edit
+                  </Button>
+
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (window.confirm("Are you sure you want to delete this sale?")) {
+                        try {
+                          const res = await authFetch(`/sales/${sale.sale_id}`, {
+                            method: "DELETE",
+                          });
+                          if (res.ok) {
+                            fetchSales();
+                          } else {
+                            alert("Failed to delete sale");
+                          }
+                        } catch (err) {
+                          console.error("Delete error:", err);
+                          alert("Something went wrong deleting the sale.");
+                        }
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+
+              <Card.Subtitle className="mb-2 text-muted mt-2">
+                <GrMoney /> ${Number(sale.total_amount).toFixed(2)}
               </Card.Subtitle>
-              {sale.note && <Card.Text>📝 {sale.note}</Card.Text>}
+              {sale.note && <Card.Text> {sale.note}</Card.Text>}
             </Card.Body>
 
             <Collapse in={expandedSaleId === sale.sale_id}>
               <div>
                 <Card.Footer style={{ backgroundColor: "#f9f9f9" }}>
-                  <SaleDetail sale_id={sale.sale_id} />
+                  <SaleDetail key={`${sale.sale_id}-${detailsRefreshKey}`} sale_id={sale.sale_id} />
                 </Card.Footer>
               </div>
             </Collapse>
           </Card>
         ))
+      )}
+      {editingSaleId && (
+        <SaleEditForm
+          saleId={editingSaleId}
+          onClose={() => setEditingSaleId(null)}
+          onUpdated={() => {
+            setEditingSaleId(null);
+            fetchSales();
+            setDetailsRefreshKey(prev => prev + 1);
+          }}
+        />
       )}
     </Container>
   );

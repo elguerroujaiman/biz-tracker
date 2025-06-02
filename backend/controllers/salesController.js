@@ -264,3 +264,112 @@ exports.getSalesStats = async (req, res) => {
     res.status(500).json({ message: "Error fetching sales stats" });
   }
 };
+
+exports.updateSale = async (req, res) => {
+  const { sale_id } = req.params;
+  const { note, items } = req.body;
+  const user_id = req.user.id;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ message: "Sale items are required." });
+  }
+
+  try {
+    await withTransaction(async (conn) => {
+      // 1. Verify sale exists and belongs to the user
+      const [existingSale] = await conn.query(
+        "SELECT sale_id FROM sales WHERE sale_id = ? AND user_id = ?",
+        [sale_id, user_id]
+      );
+      if (existingSale.length === 0) {
+        throw new Error("Sale not found or not authorized.");
+      }
+
+      // 2. Restore stock from old items
+      const [oldItems] = await conn.query(
+        "SELECT product_id, quantity FROM sale_items WHERE sale_id = ?",
+        [sale_id]
+      );
+      for (const item of oldItems) {
+        await conn.query(
+          "UPDATE products SET total_quantity = total_quantity + ? WHERE product_id = ?",
+          [item.quantity, item.product_id]
+        );
+      }
+
+      // 3. Delete old sale_items
+      await conn.query("DELETE FROM sale_items WHERE sale_id = ?", [sale_id]);
+
+      // 4. Insert new sale_items & deduct stock
+      let totalAmount = 0;
+      for (const item of items) {
+        const { product_id, quantity, unit_price } = item;
+        const total_price = quantity * unit_price;
+        totalAmount += total_price;
+
+        await conn.query(
+          `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price)
+           VALUES (?, ?, ?, ?, ?)`,
+          [sale_id, product_id, quantity, unit_price, total_price]
+        );
+
+        await conn.query(
+          "UPDATE products SET total_quantity = total_quantity - ? WHERE product_id = ?",
+          [quantity, product_id]
+        );
+      }
+
+      // 5. Update note and total_amount
+      await conn.query(
+        "UPDATE sales SET note = ?, total_amount = ? WHERE sale_id = ?",
+        [note || null, totalAmount, sale_id]
+      );
+    });
+
+    res.json({ message: "Sale updated successfully" });
+  } catch (err) {
+    console.error("Error updating sale:", err);
+    res.status(500).json({ message: err.message || "Error updating sale" });
+  }
+};
+
+exports.deleteSale = async (req, res) => {
+  const { sale_id } = req.params;
+  const user_id = req.user.id;
+
+  try {
+    await withTransaction(async (conn) => {
+      // 1. Get sale items to restore product stock
+      const [items] = await conn.query(
+        "SELECT product_id, quantity FROM sale_items WHERE sale_id = ?",
+        [sale_id]
+      );
+
+      // 2. Restore stock for each product
+      for (const item of items) {
+        await conn.query(
+          "UPDATE products SET total_quantity = total_quantity + ? WHERE product_id = ?",
+          [item.quantity, item.product_id]
+        );
+      }
+
+      // 3. Delete sale items
+      await conn.query("DELETE FROM sale_items WHERE sale_id = ?", [sale_id]);
+
+      // 4. Delete the sale itself
+      const [result] = await conn.query(
+        "DELETE FROM sales WHERE sale_id = ? AND user_id = ?",
+        [sale_id, user_id]
+      );
+
+      if (result.affectedRows === 0) {
+        throw new Error("Sale not found or not authorized");
+      }
+    });
+
+    res.json({ message: "Sale deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting sale:", err);
+    res.status(500).json({ message: err.message || "Error deleting sale" });
+  }
+};
