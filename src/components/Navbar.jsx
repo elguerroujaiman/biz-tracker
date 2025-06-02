@@ -40,13 +40,9 @@ const Navbar = () => {
             <Link className="nav-link" to="/purchases">Purchases</Link>
           </li>
           <li className="nav-item">
-            <button
-              className="nav-link btn btn-link text-white"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
+            <Link className="nav-link" to="/settings">Settings</Link>
           </li>
+          {/* Logout button removed as requested */}
         </ul>
       </div>
     </nav>

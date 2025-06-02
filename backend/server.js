@@ -9,6 +9,7 @@ const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const salesRoutes = require("./routes/sales");
 const purchaseRoutes = require("./routes/purchases");
+const settingsRoutes = require("./routes/settingsRoutes");
 
 dotenv.config();
 
@@ -41,6 +42,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/purchases", purchaseRoutes); 
+app.use("/api/settings", settingsRoutes);
+
 // Start the server
 app.listen(5000, () => {
   console.log("Server running on port 5000");

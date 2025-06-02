@@ -8,6 +8,9 @@ import { Toaster } from "react-hot-toast";
 
 import Login from "./components/Login";
 import SignUp from "./components/Signup";
+
+import SettingsPage from "./components/settings/SettingsPage";
+
 import Home from "./components/Home";
 import Inventory from "./components/Inventory/Inventory";
 import Navbar from "./components/Navbar";
@@ -104,7 +107,6 @@ function App() {
           }
         />
 
-        {/* Purchases Routes */}
         <Route
           path="/purchases"
           element={
@@ -145,6 +147,17 @@ function App() {
               <>
                 <Navbar />
                 <PurchaseStats />
+              </>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <PrivateRoute>
+              <>
+                <Navbar />
+                <SettingsPage />
               </>
             </PrivateRoute>
           }
