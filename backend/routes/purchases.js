@@ -8,5 +8,6 @@ router.get("/", authenticateToken, purchasesController.getPurchases);
 router.get("/stats", authenticateToken, purchasesController.getPurchaseStats);
 router.get("/:purchase_id", authenticateToken, purchasesController.getPurchaseById);
 router.put("/:purchase_id", authenticateToken, purchasesController.updatePurchase);
+router.delete("/:purchase_id", authenticateToken, purchasesController.deletePurchase);
 
 module.exports = router;

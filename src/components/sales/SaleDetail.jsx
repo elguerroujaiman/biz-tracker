@@ -37,9 +37,8 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
       <p><strong>Sale ID:</strong> {sale.sale_id}</p>
       <p><strong>Date:</strong> {new Date(sale.sale_date).toLocaleString("en-GB")}</p>
       <p><strong>Total Amount:</strong> ${Number(sale.total_amount).toFixed(2)}</p>
-      <p><strong>Note:</strong> {sale.note || "No note provided."}</p>
 
-      <h6 className="mt-3">Items</h6>
+      <p><strong>Sale Items:</strong></p>
       <Table striped bordered hover size="sm" responsive>
         <thead>
           <tr>

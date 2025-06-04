@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { authFetch } from "../../utils/api";
+import { Spinner, Table } from "react-bootstrap";
 
-const PurchaseDetail = ({ purchaseId }) => {
+const PurchaseDetail = ({ purchaseId: propId }) => {
+  // allow the component to work both inside a <Route> or via prop
+  const { purchaseId: paramId } = useParams();
+  const purchaseId = propId || paramId;
+
   const [purchase, setPurchase] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -12,27 +19,55 @@ const PurchaseDetail = ({ purchaseId }) => {
         setPurchase(data);
       } catch (err) {
         console.error("Failed to fetch purchase detail", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchDetail();
+    if (purchaseId) fetchDetail();
   }, [purchaseId]);
 
-  if (!purchase) return <p>Loading...</p>;
+  if (loading) return <Spinner animation="border" size="sm" />;
+
+  if (!purchase) return <div>Purchase not found.</div>;
+
+  const items = Array.isArray(purchase.items) ? purchase.items : [];
 
   return (
-    <div className="mt-4">
-      <h4>Purchase Details</h4>
-      <p><strong>Date:</strong> {new Date(purchase.purchase_date).toLocaleString()}</p>
-      <p><strong>Total:</strong> ${purchase.total_amount}</p>
-      <p><strong>Notes:</strong> {purchase.notes}</p>
-      <ul>
-        {purchase.items.map((item, idx) => (
-          <li key={idx}>
-            {item.product_name} - {item.quantity} × ${item.price} = ${item.total_price}
-          </li>
-        ))}
-      </ul>
+    <div>
+      <h5>Purchase Details</h5>
+
+      <p><strong>Purchase&nbsp;ID:</strong> {purchase.purchase_id}</p>
+      <p><strong>Date:</strong> {new Date(purchase.purchase_date).toLocaleString("en-GB")}</p>
+      <p><strong>Total&nbsp;Amount:</strong> ${Number(purchase.total_amount).toFixed(2)}</p>
+
+      <p><strong>Purchase&nbsp;Items:</strong></p>
+      {items.length === 0 ? (
+        <p>No items found for this purchase.</p>
+      ) : (
+        <Table striped bordered hover size="sm" responsive>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Quantity</th>
+              <th>Unit&nbsp;Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, idx) => (
+              <tr key={idx}>
+                <td>{item.product_name}</td>
+                <td>{item.category}</td>
+                <td>{item.quantity}</td>
+                <td>${Number(item.unit_price).toFixed(2)}</td>
+                <td>${Number(item.total_price).toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
     </div>
   );
 };

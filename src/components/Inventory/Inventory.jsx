@@ -198,7 +198,7 @@ function Inventory() {
             ))
           ) : (
             <tr>
-              <td colSpan="6" className="text-center">
+              <td colSpan="8" className="text-center">
                 No products found.
               </td>
             </tr>

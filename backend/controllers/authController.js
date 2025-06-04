@@ -41,3 +41,31 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// REGISTER NEW USER
+exports.register = async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    // Check if email already exists
+    const [existingUsers] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Insert user into database
+    await db.query(
+      "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+      [username, email, hashedPassword]
+    );
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};

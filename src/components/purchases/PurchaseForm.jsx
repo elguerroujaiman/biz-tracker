@@ -1,22 +1,31 @@
-import React, { useState, useEffect } from "react";
-import { Modal, Button, Form, Row, Col } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
 import { authFetch } from "../../utils/api";
+import { Form, Button, Table } from "react-bootstrap";
+import { toast } from "react-hot-toast";
 
-const PurchaseForm = ({ show, onHide, onPurchaseCreated, editPurchase }) => {
+const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
   const [products, setProducts] = useState([]);
-  const [items, setItems] = useState([]);
-  const [notes, setNotes] = useState("");
+  const [items, setItems] = useState([
+    {
+      product_id: "",
+      product_name: "",
+      quantity: 1,
+      unit_price: 0,
+      total_price: 0,
+    },
+  ]);
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await authFetch("/products");
-        if (res.ok) {
-          const data = await res.json();
-          setProducts(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch products", err);
+        const response = await authFetch("/products");
+        const data = await response.json();
+        setProducts(data || []);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        toast.error("Failed to load products");
       }
     };
     fetchProducts();
@@ -24,137 +33,198 @@ const PurchaseForm = ({ show, onHide, onPurchaseCreated, editPurchase }) => {
 
   useEffect(() => {
     if (editPurchase) {
-      setItems(editPurchase.items.map(item => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-        price: item.unit_price
-      })));
-      setNotes(editPurchase.notes || "");
-    } else {
-      setItems([]);
-      setNotes("");
+      setItems(
+        editPurchase.items.map((item) => {
+          const product = products.find(p => p.product_id === item.product_id);
+          return {
+            product_id: item.product_id,
+            product_name: product?.name || "",
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.quantity * item.unit_price,
+          };
+        })
+      );
+      setNote(editPurchase.note || "");
     }
-  }, [editPurchase]);
+  }, [editPurchase, products]);
 
   const handleItemChange = (index, field, value) => {
-    const updatedItems = [...items];
-    updatedItems[index][field] = field === "quantity" || field === "price" ? parseFloat(value) : value;
-    setItems(updatedItems);
+    const updated = [...items];
+
+    if (field === "product_id") {
+      const selectedProduct = products.find(p => p.product_id === parseInt(value));
+      if (selectedProduct) {
+        updated[index] = {
+          product_id: selectedProduct.product_id,
+          product_name: selectedProduct.name,
+          quantity: 1,
+          unit_price: parseFloat(selectedProduct.unit_price || 0),
+          total_price: parseFloat(selectedProduct.unit_price || 0),
+        };
+      }
+    } else {
+      updated[index][field] = field === "quantity" || field === "unit_price"
+        ? parseFloat(value)
+        : value;
+
+      updated[index].total_price = updated[index].quantity * updated[index].unit_price;
+    }
+
+    setItems(updated);
   };
 
-  const addItem = () => {
-    setItems([...items, { product_id: "", quantity: 1, price: 0 }]);
+  const handleAddItem = () => {
+    setItems([
+      ...items,
+      {
+        product_id: "",
+        product_name: "",
+        quantity: 1,
+        unit_price: 0,
+        total_price: 0,
+      },
+    ]);
   };
 
   const removeItem = (index) => {
-    const updatedItems = [...items];
-    updatedItems.splice(index, 1);
-    setItems(updatedItems);
+    setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmitPurchase = async () => {
     if (items.length === 0) {
-      alert("Please add at least one item.");
+      toast.error("You must add at least one item to create a purchase.");
       return;
     }
-
-    const payload = {
-      items,
-      notes
+  
+    const purchaseData = {
+      notes: note,
+      items: items.map(({ product_id, quantity, unit_price }) => ({
+        product_id: parseInt(product_id),
+        quantity,
+        price: unit_price,
+      })),
     };
-
+  
     try {
-      const res = await authFetch("/purchases", {
+      setLoading(true);
+      const response = await authFetch("/purchases", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(purchaseData),
       });
-
-      if (res.ok) {
-        onPurchaseCreated();
-        onHide();
-      } else {
-        const errorData = await res.json();
-        alert(errorData.message || "Failed to create purchase.");
+  
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Purchase creation failed");
       }
+  
+      toast.success("Purchase created successfully!");
+      onPurchaseCreated();
+  
+      // Reset form
+      setItems([
+        {
+          product_id: "",
+          product_name: "",
+          quantity: 1,
+          unit_price: 0,
+          total_price: 0,
+        },
+      ]);
+      setNote("");
     } catch (err) {
       console.error("Error creating purchase:", err);
+      toast.error(`Could not create purchase: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="lg">
-      <Form onSubmit={handleSubmit}>
-        <Modal.Header closeButton>
-          <Modal.Title>{editPurchase ? "Edit Purchase" : "New Purchase"}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {items.map((item, index) => (
-            <Row key={index} className="mb-3">
-              <Col md={5}>
-                <Form.Select
-                  value={item.product_id}
-                  onChange={(e) => handleItemChange(index, "product_id", e.target.value)}
-                  required
-                >
-                  <option value="">Select Product</option>
-                  {products.map((product) => (
-                    <option key={product.product_id} value={product.product_id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
-              <Col md={3}>
-                <Form.Control
-                  type="number"
-                  min="1"
-                  value={item.quantity}
-                  onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
-                  required
-                />
-              </Col>
-              <Col md={3}>
-                <Form.Control
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={item.price}
-                  onChange={(e) => handleItemChange(index, "price", e.target.value)}
-                  required
-                />
-              </Col>
-              <Col md={1}>
-                <Button variant="danger" onClick={() => removeItem(index)}>
-                  &times;
-                </Button>
-              </Col>
-            </Row>
-          ))}
-          <Button variant="secondary" onClick={addItem}>
-            Add Item
-          </Button>
-          <Form.Group className="mt-3">
-            <Form.Label>Notes</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={onHide}>
-            Cancel
-          </Button>
-          <Button variant="primary" type="submit">
-            {editPurchase ? "Update Purchase" : "Create Purchase"}
-          </Button>
-        </Modal.Footer>
+    <>
+      <h5>{editPurchase ? "Edit Purchase" : "Create Purchase"}</h5>
+      <Form>
+        <Table striped bordered size="sm">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Unit Price</th>
+              <th>Total</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, i) => (
+              <tr key={i}>
+                <td>
+                  <Form.Select
+                    value={item.product_id}
+                    onChange={(e) => handleItemChange(i, "product_id", e.target.value)}
+                    required
+                  >
+                    <option value="">Select Product</option>
+                    {products.map((p) => (
+                      <option key={p.product_id} value={p.product_id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </td>
+                <td>
+                  <Form.Control
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) => handleItemChange(i, "quantity", e.target.value)}
+                    min={1}
+                    required
+                  />
+                </td>
+                <td>
+                  <Form.Control
+                    type="number"
+                    value={item.unit_price}
+                    onChange={(e) => handleItemChange(i, "unit_price", e.target.value)}
+                    min={0}
+                    step="0.01"
+                    required
+                  />
+                </td>
+                <td>${(item.total_price || 0).toFixed(2)}</td>
+                <td>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => removeItem(i)}
+                  >
+                    Remove
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+
+        <Button variant="success" size="sm" onClick={handleAddItem}>
+          + Add Item
+        </Button>
+
+        <Form.Group className="mb-3 mt-3">
+          <Form.Label>Note</Form.Label>
+          <Form.Control
+            type="text"
+            placeholder="Optional note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </Form.Group>
+
+        <Button variant="primary" onClick={handleSubmitPurchase} disabled={loading}>
+          {loading ? "Submitting..." : editPurchase ? "Update Purchase" : "Add Purchase"}
+        </Button>
       </Form>
-    </Modal>
+    </>
   );
 };
 

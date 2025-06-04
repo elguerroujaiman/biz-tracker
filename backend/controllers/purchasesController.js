@@ -12,10 +12,9 @@ exports.createPurchase = async (req, res) => {
 
   try {
     const purchaseId = await withTransaction(async (conn) => {
-      // Validate products exist
       for (const item of items) {
         const [rows] = await conn.query(
-          `SELECT product_id FROM products WHERE product_id = ?`,
+          "SELECT product_id FROM products WHERE product_id = ?",
           [item.product_id]
         );
         if (rows.length === 0) {
@@ -23,30 +22,27 @@ exports.createPurchase = async (req, res) => {
         }
       }
 
-      // Calculate total
       let totalAmount = 0;
       items.forEach(item => {
         totalAmount += item.price * item.quantity;
       });
 
       const [purchaseResult] = await conn.query(
-        `INSERT INTO purchases (user_id, total_amount, notes) VALUES (?, ?, ?)`,
+        "INSERT INTO purchases (user_id, total_amount, notes) VALUES (?, ?, ?)",
         [user_id, totalAmount, notes || null]
       );
 
       const purchaseId = purchaseResult.insertId;
 
       for (const item of items) {
-        const { product_id, quantity, price } = item;
-
         await conn.query(
-          `INSERT INTO purchase_items (purchase_id, product_id, quantity, price) VALUES (?, ?, ?, ?)`,
-          [purchaseId, product_id, quantity, price]
+          "INSERT INTO purchase_items (purchase_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
+          [purchaseId, item.product_id, item.quantity, item.price]
         );
 
         await conn.query(
-          `UPDATE products SET total_quantity = total_quantity + ? WHERE product_id = ?`,
-          [quantity, product_id]
+          "UPDATE products SET total_quantity = total_quantity + ? WHERE product_id = ?",
+          [item.quantity, item.product_id]
         );
       }
 
@@ -60,54 +56,50 @@ exports.createPurchase = async (req, res) => {
   }
 };
 
-// Get all purchases
+// Get all purchases with filters
 exports.getPurchases = async (req, res) => {
   const { from, to, product_id, category } = req.query;
   const user_id = req.user.id;
 
-  // Base query to get purchase IDs that match the filter
-  let baseFilterQuery = `
+  let filterQuery = `
     SELECT DISTINCT p.id AS purchase_id
     FROM purchases p
     JOIN purchase_items pi ON p.id = pi.purchase_id
     JOIN products pr ON pi.product_id = pr.product_id
     WHERE p.user_id = ?
   `;
-
-  const filterValues = [user_id];
+  const params = [user_id];
 
   if (from) {
-    baseFilterQuery += ` AND p.purchase_date >= ?`;
-    filterValues.push(from);
+    filterQuery += " AND p.purchase_date >= ?";
+    params.push(from);
   }
 
   if (to) {
-    baseFilterQuery += ` AND p.purchase_date <= ?`;
-    filterValues.push(to);
+    filterQuery += " AND p.purchase_date <= ?";
+    params.push(to);
   }
 
   if (product_id) {
-    baseFilterQuery += ` AND pi.product_id = ?`;
-    filterValues.push(product_id);
+    filterQuery += " AND pi.product_id = ?";
+    params.push(product_id);
   }
 
   if (category) {
-    baseFilterQuery += ` AND pr.category = ?`;
-    filterValues.push(category);
+    filterQuery += " AND pr.category = ?";
+    params.push(category);
   }
 
   try {
-    const [filteredPurchaseIds] = await db.query(baseFilterQuery, filterValues);
-
-    const purchaseIds = filteredPurchaseIds.map(row => row.purchase_id);
+    const [filteredIds] = await db.query(filterQuery, params);
+    const purchaseIds = filteredIds.map(row => row.purchase_id);
 
     if (purchaseIds.length === 0) {
-      return res.json([]); // No matching purchases
+      return res.json([]);
     }
 
-    // Fetch full data for those purchases
     const placeholders = purchaseIds.map(() => '?').join(',');
-    const [fullPurchases] = await db.query(
+    const [purchasesData] = await db.query(
       `
       SELECT 
         p.id AS purchase_id,
@@ -134,127 +126,147 @@ exports.getPurchases = async (req, res) => {
       [user_id, ...purchaseIds]
     );
 
-    res.json(fullPurchases);
+    const purchases = purchasesData.map(p => ({
+      ...p,
+      items: typeof p.items === "string" ? JSON.parse(p.items) : p.items
+    }));
+
+    res.json(purchases);
   } catch (err) {
     console.error("Error fetching purchases:", err);
     res.status(500).json({ message: "Error fetching purchases" });
   }
 };
 
-// Get a single purchase by ID
+// Get a single purchase
 exports.getPurchaseById = async (req, res) => {
   const { purchase_id } = req.params;
   const user_id = req.user.id;
 
-  const query = `
-    SELECT 
-      p.id AS purchase_id,
-      p.purchase_date,
-      p.total_amount,
-      p.notes,
-      JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'product_id', pi.product_id,
-          'product_name', pr.name,
-          'category', pr.category,
-          'quantity', pi.quantity,
-          'unit_price', pi.price,
-          'total_price', pi.price * pi.quantity
-        )
-      ) AS items
-    FROM purchases p
-    JOIN purchase_items pi ON p.id = pi.purchase_id
-    JOIN products pr ON pi.product_id = pr.product_id
-    WHERE p.id = ? AND p.user_id = ?
-    GROUP BY p.id
-  `;
-
   try {
-    const [rows] = await db.query(query, [purchase_id, user_id]);
+    const [rows] = await db.query(
+      `
+      SELECT 
+        p.id AS purchase_id,
+        p.purchase_date,
+        p.total_amount,
+        p.notes,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'product_id', pi.product_id,
+            'product_name', pr.name,
+            'category', pr.category,
+            'quantity', pi.quantity,
+            'unit_price', pi.price,
+            'total_price', pi.price * pi.quantity
+          )
+        ) AS items
+      FROM purchases p
+      JOIN purchase_items pi ON p.id = pi.purchase_id
+      JOIN products pr ON pi.product_id = pr.product_id
+      WHERE p.id = ? AND p.user_id = ?
+      GROUP BY p.id
+      `,
+      [purchase_id, user_id]
+    );
+
     if (rows.length === 0) {
       return res.status(404).json({ message: "Purchase not found" });
     }
 
-    res.json(rows[0]);
+    const purchase = rows[0];
+
+    // Fix: Only parse if it's a string
+    purchase.items = typeof purchase.items === "string"
+      ? JSON.parse(purchase.items)
+      : purchase.items;
+
+    res.json(purchase);
   } catch (err) {
-    console.error("Error fetching purchase by ID:", err);
+    console.error("Error fetching purchase:", err);
     res.status(500).json({ message: "Error fetching purchase" });
   }
 };
 
-// Enhanced purchase statistics
+// Get stats
 exports.getPurchaseStats = async (req, res) => {
   const user_id = req.user.id;
 
   try {
-    const [[totalAmountResult]] = await db.query(
-      `SELECT SUM(total_amount) AS total_spent FROM purchases WHERE user_id = ?`,
+    const [[totalAmount]] = await db.query(
+      "SELECT SUM(total_amount) AS total_spent FROM purchases WHERE user_id = ?",
       [user_id]
     );
 
-    const [[totalPurchasesResult]] = await db.query(
-      `SELECT COUNT(*) AS total_purchases FROM purchases WHERE user_id = ?`,
+    const [[totalPurchases]] = await db.query(
+      "SELECT COUNT(*) AS total_purchases FROM purchases WHERE user_id = ?",
       [user_id]
     );
 
-    const [[totalUnitsResult]] = await db.query(
-      `SELECT SUM(quantity) AS total_units_purchased
-       FROM purchase_items pi
-       JOIN purchases p ON pi.purchase_id = p.id
-       WHERE p.user_id = ?`,
+    const [[totalUnits]] = await db.query(
+      `
+      SELECT SUM(quantity) AS total_units_purchased
+      FROM purchase_items pi
+      JOIN purchases p ON pi.purchase_id = p.id
+      WHERE p.user_id = ?
+      `,
       [user_id]
     );
 
-    const [[mostPurchasedProduct]] = await db.query(
-      `SELECT pr.name AS product_name, SUM(pi.quantity) AS units_purchased
-       FROM purchase_items pi
-       JOIN products pr ON pi.product_id = pr.product_id
-       JOIN purchases p ON pi.purchase_id = p.id
-       WHERE p.user_id = ?
-       GROUP BY pi.product_id
-       ORDER BY units_purchased DESC
-       LIMIT 1`,
+    const [[mostPurchased]] = await db.query(
+      `
+      SELECT pr.name AS product_name, SUM(pi.quantity) AS units_purchased
+      FROM purchase_items pi
+      JOIN products pr ON pi.product_id = pr.product_id
+      JOIN purchases p ON pi.purchase_id = p.id
+      WHERE p.user_id = ?
+      GROUP BY pi.product_id
+      ORDER BY units_purchased DESC
+      LIMIT 1
+      `,
       [user_id]
     );
 
-    const [[topSpendingProduct]] = await db.query(
-      `SELECT pr.name AS product_name, SUM(pi.quantity * pi.price) AS total_spent
-       FROM purchase_items pi
-       JOIN products pr ON pi.product_id = pr.product_id
-       JOIN purchases p ON pi.purchase_id = p.id
-       WHERE p.user_id = ?
-       GROUP BY pi.product_id
-       ORDER BY total_spent DESC
-       LIMIT 1`,
+    const [[topSpending]] = await db.query(
+      `
+      SELECT pr.name AS product_name, SUM(pi.quantity * pi.price) AS total_spent
+      FROM purchase_items pi
+      JOIN products pr ON pi.product_id = pr.product_id
+      JOIN purchases p ON pi.purchase_id = p.id
+      WHERE p.user_id = ?
+      GROUP BY pi.product_id
+      ORDER BY total_spent DESC
+      LIMIT 1
+      `,
       [user_id]
     );
 
-    const [[highestSinglePurchase]] = await db.query(
-      `SELECT MAX(total_amount) AS highest_purchase FROM purchases WHERE user_id = ?`,
+    const [[highestPurchase]] = await db.query(
+      "SELECT MAX(total_amount) AS highest_purchase FROM purchases WHERE user_id = ?",
       [user_id]
     );
 
-    const totalPurchases = totalPurchasesResult.total_purchases || 0;
-    const totalUnits = totalUnitsResult.total_units_purchased || 0;
+    const total = totalPurchases.total_purchases || 0;
+    const units = totalUnits.total_units_purchased || 0;
 
     res.json({
-      total_spent: Number(totalAmountResult.total_spent || 0),
-      total_purchases: totalPurchases,
-      total_units_purchased: totalUnits,
-      most_purchased_product: mostPurchasedProduct?.product_name || null,
-      most_purchased_units: mostPurchasedProduct?.units_purchased || 0,
-      top_spending_product: topSpendingProduct?.product_name || null,
-      top_spending_amount: Number(topSpendingProduct?.total_spent || 0),
-      average_order_size: totalPurchases > 0 ? totalUnits / totalPurchases : 0,
-      highest_single_purchase: Number(highestSinglePurchase?.highest_purchase || 0),
+      total_spent: Number(totalAmount.total_spent || 0),
+      total_purchases: total,
+      total_units_purchased: units,
+      most_purchased_product: mostPurchased?.product_name || null,
+      most_purchased_units: mostPurchased?.units_purchased || 0,
+      top_spending_product: topSpending?.product_name || null,
+      top_spending_amount: Number(topSpending?.total_spent || 0),
+      average_order_size: total > 0 ? units / total : 0,
+      highest_single_purchase: Number(highestPurchase?.highest_purchase || 0),
     });
   } catch (err) {
-    console.error("Error fetching purchase stats:", err);
+    console.error("Error fetching stats:", err);
     res.status(500).json({ message: "Error fetching purchase stats" });
   }
 };
 
-// Update an existing purchase
+// Update purchase
 exports.updatePurchase = async (req, res) => {
   const { purchase_id } = req.params;
   const { items, notes } = req.body;
@@ -266,18 +278,17 @@ exports.updatePurchase = async (req, res) => {
 
   try {
     await withTransaction(async (conn) => {
-      // Ensure purchase belongs to user
       const [[purchase]] = await conn.query(
         "SELECT * FROM purchases WHERE id = ? AND user_id = ?",
         [purchase_id, user_id]
       );
       if (!purchase) throw new Error("Purchase not found or unauthorized");
 
-      // Revert product quantities from existing items
       const [existingItems] = await conn.query(
         "SELECT product_id, quantity FROM purchase_items WHERE purchase_id = ?",
         [purchase_id]
       );
+
       for (const item of existingItems) {
         await conn.query(
           "UPDATE products SET total_quantity = total_quantity - ? WHERE product_id = ?",
@@ -285,10 +296,8 @@ exports.updatePurchase = async (req, res) => {
         );
       }
 
-      // Delete existing items
       await conn.query("DELETE FROM purchase_items WHERE purchase_id = ?", [purchase_id]);
 
-      // Recalculate total and insert new items
       let totalAmount = 0;
       for (const item of items) {
         totalAmount += item.price * item.quantity;
@@ -304,7 +313,6 @@ exports.updatePurchase = async (req, res) => {
         );
       }
 
-      // Update purchase record
       await conn.query(
         "UPDATE purchases SET total_amount = ?, notes = ? WHERE id = ?",
         [totalAmount, notes || null, purchase_id]
@@ -315,5 +323,56 @@ exports.updatePurchase = async (req, res) => {
   } catch (err) {
     console.error("Error updating purchase:", err);
     res.status(400).json({ message: err.message || "Error updating purchase" });
+  }
+};
+
+//Delete a purchase
+exports.deletePurchase = async (req, res) => {
+  const { purchase_id } = req.params;
+  const user_id = req.user.id; // Assumes auth middleware sets req.user
+
+  try {
+    await withTransaction(async (conn) => {
+      // Check that the purchase exists and belongs to the user
+      const [[purchase]] = await conn.query(
+        "SELECT * FROM purchases WHERE id = ? AND user_id = ?",
+        [purchase_id, user_id]
+      );
+
+      if (!purchase) {
+        return res.status(404).json({ message: "Purchase not found or unauthorized" });
+      }
+
+      // Get purchased items
+      const [items] = await conn.query(
+        "SELECT product_id, quantity FROM purchase_items WHERE purchase_id = ?",
+        [purchase_id]
+      );
+
+      // Decrease stock levels
+      for (const { product_id, quantity } of items) {
+        await conn.query(
+          "UPDATE products SET total_quantity = total_quantity - ? WHERE product_id = ?",
+          [quantity, product_id]
+        );
+      }
+
+      // Delete purchase items
+      await conn.query(
+        "DELETE FROM purchase_items WHERE purchase_id = ?",
+        [purchase_id]
+      );
+
+      // Delete the purchase itself
+      await conn.query(
+        "DELETE FROM purchases WHERE id = ?",
+        [purchase_id]
+      );
+    });
+
+    res.json({ message: "Purchase deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting purchase:", err);
+    res.status(500).json({ message: "Error deleting purchase" });
   }
 };

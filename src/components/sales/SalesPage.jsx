@@ -189,7 +189,9 @@ const SalesPage = () => {
               <Card.Subtitle className="mb-2 text-muted mt-2">
                 <GrMoney /> ${Number(sale.total_amount).toFixed(2)}
               </Card.Subtitle>
-              {sale.note && <Card.Text> {sale.note}</Card.Text>}
+              <Card.Text className="mb-0">
+                <em>Note&nbsp;:&nbsp;{sale.note?.trim() ? sale.note : "Empty"}</em>
+              </Card.Text>
             </Card.Body>
 
             <Collapse in={expandedSaleId === sale.sale_id}>
