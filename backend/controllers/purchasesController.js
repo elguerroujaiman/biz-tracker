@@ -326,7 +326,7 @@ exports.updatePurchase = async (req, res) => {
   }
 };
 
-//Delete a purchase
+//Delete a purchase 
 exports.deletePurchase = async (req, res) => {
   const { purchase_id } = req.params;
   const user_id = req.user.id; // Assumes auth middleware sets req.user
