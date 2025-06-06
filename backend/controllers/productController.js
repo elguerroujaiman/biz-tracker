@@ -98,3 +98,31 @@ exports.deleteProduct = async (req, res) => {
     res.status(500).json({ error: "Failed to delete product" });
   }
 };
+
+// GET low stock products (for dashboard)
+exports.getLowStockProducts = async (req, res) => {
+  const userId = req.user.id;
+  let { threshold } = req.query;
+
+  // Validate threshold param
+  if (!threshold) {
+    return res.status(400).json({ error: "'threshold' query parameter is required" });
+  }
+
+  threshold = Number(threshold);
+
+  if (isNaN(threshold) || threshold <= 0 || !Number.isInteger(threshold)) {
+    return res.status(400).json({ error: "'threshold' must be a positive integer" });
+  }
+
+  try {
+    const [results] = await db.query(
+      "SELECT product_id, name, category, total_quantity FROM products WHERE user_id = ? AND total_quantity <= ?",
+      [userId, threshold]
+    );
+    res.json(results);
+  } catch (err) {
+    console.error("Error fetching low stock products:", err);
+    res.status(500).json({ error: "Failed to fetch low stock products" });
+  }
+};

@@ -373,3 +373,63 @@ exports.deleteSale = async (req, res) => {
     res.status(500).json({ message: err.message || "Error deleting sale" });
   }
 };
+
+exports.getSalesSummary = async (req, res) => {
+  const user_id = req.user.id;
+
+  try {
+    // Total lifetime revenue & count
+    const [[totals]] = await db.query(
+      `SELECT
+          COALESCE(SUM(total_amount),0)     AS totalRevenue,
+          COUNT(*)                          AS totalSales
+       FROM sales
+       WHERE user_id = ?`,
+      [user_id]
+    );
+
+    // Today’s KPIs
+    const [[today]] = await db.query(
+      `SELECT
+          COALESCE(SUM(total_amount),0)     AS todaysRevenue,
+          COUNT(*)                          AS todaysSales
+       FROM sales
+       WHERE user_id = ?
+         AND DATE(sale_date) = CURDATE()`,
+      [user_id]
+    );
+
+    res.json({
+      totalRevenue: Number(totals.totalRevenue),
+      totalSales: totals.totalSales,
+      todaysRevenue: Number(today.todaysRevenue),
+      todaysSales: today.todaysSales,
+    });
+  } catch (err) {
+    console.error("Error in getSalesSummary:", err);
+    res.status(500).json({ message: "Error fetching sales summary" });
+  }
+};
+
+exports.getDailySales = async (req, res) => {
+  const user_id = req.user.id;
+
+  try {
+    const [rows] = await db.query(
+      `SELECT
+          DATE(sale_date)           AS date,
+          SUM(total_amount)         AS total
+       FROM sales
+       WHERE user_id = ?
+         AND sale_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+       GROUP BY DATE(sale_date)
+       ORDER BY DATE(sale_date) ASC`,
+      [user_id]
+    );
+
+    res.json(rows);            // [{ date:"2025-06-07", total: 123.45 }, …]
+  } catch (err) {
+    console.error("Error in getDailySales:", err);
+    res.status(500).json({ message: "Error fetching daily sales" });
+  }
+};

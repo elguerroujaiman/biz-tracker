@@ -376,3 +376,63 @@ exports.deletePurchase = async (req, res) => {
     res.status(500).json({ message: "Error deleting purchase" });
   }
 };
+
+exports.getPurchaseSummary = async (req, res) => {
+  const user_id = req.user.id;
+
+  try {
+    // Lifetime totals
+    const [[totals]] = await db.query(
+      `SELECT
+          COALESCE(SUM(total_amount),0) AS totalSpent,
+          COUNT(*)                      AS totalPurchases
+       FROM purchases
+       WHERE user_id = ?`,
+      [user_id]
+    );
+
+    // Today’s KPIs
+    const [[today]] = await db.query(
+      `SELECT
+          COALESCE(SUM(total_amount),0) AS todaysSpent,
+          COUNT(*)                      AS todaysPurchases
+       FROM purchases
+       WHERE user_id = ?
+         AND DATE(purchase_date) = CURDATE()`,
+      [user_id]
+    );
+
+    res.json({
+      totalSpent: Number(totals.totalSpent),
+      totalPurchases: totals.totalPurchases,
+      todaysSpent: Number(today.todaysSpent),
+      todaysPurchases: today.todaysPurchases,
+    });
+  } catch (err) {
+    console.error("Error in getPurchaseSummary:", err);
+    res.status(500).json({ message: "Error fetching purchase summary" });
+  }
+};
+
+exports.getDailyPurchases = async (req, res) => {
+  const user_id = req.user.id;
+
+  try {
+    const [rows] = await db.query(
+      `SELECT
+          DATE(purchase_date)      AS date,
+          SUM(total_amount)        AS total
+       FROM purchases
+       WHERE user_id = ?
+         AND purchase_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+       GROUP BY DATE(purchase_date)
+       ORDER BY DATE(purchase_date) ASC`,
+      [user_id]
+    );
+
+    res.json(rows);          // [{ "date":"2025-06-03", "total": 123.45 }, …]
+  } catch (err) {
+    console.error("Error in getDailyPurchases:", err);
+    res.status(500).json({ message: "Error fetching daily purchases" });
+  }
+};
