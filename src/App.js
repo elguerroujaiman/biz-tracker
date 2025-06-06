@@ -13,7 +13,8 @@ import SettingsPage from "./components/settings/SettingsPage";
 import Home from "./components/Home";
 import Inventory from "./components/Inventory/Inventory";
 
-import Navbar from "./components/Navbar"; // sidebar
+// sidebar
+import Navbar from "./components/Navbar";
 
 import PrivateRoute from "./components/PrivateRoute";
 
@@ -28,6 +29,9 @@ import PurchasesPage from "./components/purchases/PurchasesPage";
 import PurchaseForm from "./components/purchases/PurchaseForm";
 import PurchaseDetail from "./components/purchases/PurchaseDetail";
 import PurchaseStats from "./components/purchases/PurchaseStats";
+
+// Sales Components
+import DashboardPage from "./components/Dashboard/DashboardPage";
 
 function AppLayout({ children }) {
   return (
@@ -145,6 +149,16 @@ function App() {
             <PrivateRoute>
               <AppLayout>
                 <PurchaseStats />
+              </AppLayout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <AppLayout>
+                <DashboardPage />
               </AppLayout>
             </PrivateRoute>
           }
