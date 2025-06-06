@@ -34,7 +34,7 @@ const SignUp = () => {
   };
 
   return (
-    <div className="d-flex align-items-center loginBox">
+    <div className="loginBox">
       <form onSubmit={handleSubmit} className="form-signin bg-white">
         <h3>Sign Up</h3>
         {error && <div className="text-danger">{error}</div>}

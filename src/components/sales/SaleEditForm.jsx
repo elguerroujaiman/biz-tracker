@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Modal, Button, Form, Table } from "react-bootstrap";
+import { Modal, Button, Form } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
 
 const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
@@ -95,7 +95,7 @@ const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
   };
 
   return (
-    <Modal show onHide={onClose}>
+    <Modal show onHide={onClose} size="lg" contentClassName="custom-modal">
       <Modal.Header closeButton>
         <Modal.Title>Edit Sale {saleId}</Modal.Title>
       </Modal.Header>
@@ -106,10 +106,11 @@ const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
             <Form.Control
               type="text"
               value={note}
+              className="custom-input"
               onChange={(e) => setNote(e.target.value)}
             />
           </Form.Group>
-          <Table striped bordered size="sm">
+          <table className="custom-table">
             <thead>
               <tr>
                 <th>Product</th>
@@ -128,6 +129,7 @@ const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
                       onChange={(e) =>
                         handleItemChange(i, "product_id", e.target.value)
                       }
+                      className="custom-input"
                       required
                     >
                       <option value="">Select Product</option>
@@ -146,6 +148,7 @@ const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
                         handleItemChange(i, "quantity", e.target.value)
                       }
                       min={1}
+                      className="custom-input"
                       required
                     />
                   </td>
@@ -157,6 +160,7 @@ const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
                         handleItemChange(i, "unit_price", e.target.value)
                       }
                       min={0}
+                      className="custom-input"
                       step="0.01"
                       required
                     />
@@ -174,7 +178,7 @@ const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
                 </tr>
               ))}
             </tbody>
-          </Table>
+          </table>
           <Button variant="success" size="sm" onClick={handleAddItem}>
             + Add Item
           </Button>

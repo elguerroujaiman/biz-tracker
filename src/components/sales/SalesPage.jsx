@@ -13,7 +13,7 @@ const SalesPage = () => {
   const [filterText, setFilterText] = useState("");
   const [filteredSales, setFilteredSales] = useState([]);
   const [sortBy, setSortBy] = useState("Sale ID");
-  const [sortAsc, setSortAsc] = useState(true);
+  const [sortAsc, setSortAsc] = useState(false);
   const [editingSaleId, setEditingSaleId] = useState(null);
   const [detailsRefreshKey, setDetailsRefreshKey] = useState(0);
 
@@ -72,10 +72,12 @@ const SalesPage = () => {
 
   const handleSortChange = (criterion) => {
     if (sortBy === criterion) {
-      setSortAsc(!sortAsc);
+      // If already sorting by this, toggle the direction
+      setSortAsc(prev => !prev);
     } else {
+      // When selecting a new column, start in descending order
       setSortBy(criterion);
-      setSortAsc(true);
+      setSortAsc(false);
     }
   };
 
@@ -103,6 +105,7 @@ const SalesPage = () => {
             placeholder="Search by Sale ID or Note"
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
+            className="custom-input"
           />
         </Col>
         <Col xs="auto">
@@ -126,7 +129,7 @@ const SalesPage = () => {
       </Row>
 
       {/* Add Sale Modal */}
-      <Modal show={showForm} onHide={() => setShowForm(false)}>
+      <Modal show={showForm} onHide={() => setShowForm(false)} size="lg" contentClassName="custom-modal">
         <Modal.Header closeButton>
           <Modal.Title>New Sale</Modal.Title>
         </Modal.Header>
@@ -140,7 +143,7 @@ const SalesPage = () => {
         <div className="text-center text-muted mt-5">No sales found</div>
       ) : (
         filteredSales.map((sale) => (
-          <Card key={sale.sale_id} className="mb-3 shadow-sm">
+          <Card key={sale.sale_id} className="mb-3 shadow-sm custom-card-color">
             <Card.Body onClick={() => toggleExpanded(sale.sale_id)} style={{ cursor: "pointer" }}>
               <div className="d-flex justify-content-between align-items-center flex-wrap">
                 <Card.Title className="mb-0">
@@ -196,7 +199,7 @@ const SalesPage = () => {
 
             <Collapse in={expandedSaleId === sale.sale_id}>
               <div>
-                <Card.Footer style={{ backgroundColor: "#f9f9f9" }}>
+                <Card.Footer className="custom-detail">
                   <SaleDetail key={`${sale.sale_id}-${detailsRefreshKey}`} sale_id={sale.sale_id} />
                 </Card.Footer>
               </div>

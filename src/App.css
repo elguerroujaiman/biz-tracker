@@ -1,1 +1,244 @@
-.loginBox{min-height: 100vh; background-color: #d7dde6;}
+/* === Global Font Styling === */
+body {
+  font-family: "Brush Script MT", cursive !important;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #ffffff; /* Optional: base text color */
+}
+
+.loginBox {
+  min-height: 100vh;
+  width: 100%;
+  background: rgb(204, 234, 247);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-signin {
+  max-width: 420px;
+  width: 100%;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Default sidebar styling (desktop) */
+#sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 200px;
+  height: 100vh;
+  background: #1e1e2f;
+  padding: 0 0.5rem;
+  overflow-y: auto;
+  z-index: 1030;
+  transition: transform 0.3s ease-in-out;
+}
+
+/* Sidebar link styles */
+#sidebar .nav-link {
+  color: skyblue;
+  padding: 0.6rem 0;
+}
+#sidebar .nav-link.active,
+#sidebar .nav-link:hover {
+  background: #292948;
+  color: #fff;
+}
+
+/* Sidebar on mobile (hidden by default) */
+@media (max-width: 768px) {
+  #sidebar {
+    transform: translateX(-100%); /* Hide sidebar by default */
+  }
+
+  #sidebar.open {
+    transform: translateX(0); /* Slide in when open */
+  }
+
+  #main-content {
+    margin-left: 0 !important; /* Remove fixed margin */
+  }
+}
+
+/* Desktop layout adjustment */
+@media (min-width: 769px) {
+  #sidebar {
+    transform: none !important;
+  }
+
+  #main-content {
+    margin-left: 200px;
+  }
+}
+
+#sidebar .nav-link{
+  color:skyblue;
+  padding:0.6rem 0;
+}
+#sidebar .nav-link.active,
+#sidebar .nav-link:hover{
+  background:#292948;
+  color:#fff;
+}
+
+/* === main content wrapper === */
+#main-content {
+    margin-left: 200px;
+    margin-top: 0px;
+    padding: 1rem;
+    background-color: rgb(213, 237, 248); 
+    min-height: calc(100vh); /* Ensures full height without overflow */
+}
+
+#sidebar .app-name {
+    color: skyblue;
+  }
+
+  .sidebar-separator {
+    width:80%;
+    border: none;
+    border-top: 2px solid white;
+    margin: 0 auto;
+}
+
+/* === Hamburger (≡) button === */
+.sidebar-toggle-btn {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  z-index: 1050;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  transition: background 0.2s ease;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* === Close (×) button inside sidebar === */
+.close-sidebar-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  transition: background 0.2s ease;
+}
+
+.close-sidebar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* Sidebar header container */
+.sidebar-header {
+  margin-top: 1rem;
+}
+
+/* Responsive sidebar */
+@media (max-width: 768px) {
+  #sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  #sidebar.open {
+    transform: translateX(0);
+  }
+
+  #main-content {
+    margin-left: 0;
+  }
+}
+
+/* === Custom Table Styling (zebra-striped blue) overriding Bootstrap === */
+
+:root {
+  --row-even: #a8d0f3;
+  --row-odd: #8cb9e2;
+}
+
+/* Entire table */
+table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background-color: #ffffff !important;
+  font-size: 0.95rem !important;
+  margin-bottom: 1.5rem !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+}
+
+/* Header row */
+thead {
+  background-color: #292948 !important;
+  color: skyblue !important;
+  text-align: center !important;
+}
+
+thead th {
+  padding: 0.75rem 1rem !important;
+  border-bottom: 2px solid #292948 !important;
+  text-align: center !important;
+}
+
+/* Zebra-striped rows */
+tbody tr:nth-child(even) {
+  background-color: var(--row-even) !important;
+}
+
+tbody tr:nth-child(odd) {
+  background-color: var(--row-odd) !important;
+}
+
+/* Hover row */
+tbody tr:hover {
+  background-color: #517ba1 !important;
+}
+
+/* Cells */
+td {
+  padding: 0.65rem 1rem !important;
+  text-align: center !important;
+  color: #333 !important;
+}
+
+/* Optional: separator line */
+tbody tr {
+  border-bottom: 1px solid #b9d9f1 !important;
+}
+
+.custom-modal {
+  background-color: rgb(204, 234, 247) !important; /* or any color you want */
+  color: rgb(0, 0, 0) !important;
+}
+
+
+.custom-input {
+  background-color: #e9f6fc !important;
+  color: #000000 !important;
+  border: 1px solid #78789c !important;
+}
+
+.custom-card-color {
+  background-color: rgb(154, 216, 243) !important;
+  color: rgb(0, 0, 0) !important;
+}
+
+.custom-detail {
+  background-color: #aae4ff !important;
+  color: #000000 !important;
+}

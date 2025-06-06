@@ -1,51 +1,56 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { FaBars, FaTimes } from "react-icons/fa";
 
 const Navbar = () => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    const confirmed = window.confirm("Are you sure you want to log out?");
-    if (confirmed) {
-      sessionStorage.clear();
-      localStorage.clear();
-      navigate("/signin");
-    }
-  };
+  const [open, setOpen] = useState(false);
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary px-4">
-      <Link className="navbar-brand" to="/home">Business Tracker</Link>
-      <button
-        className="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarNav"
-      >
-        <span className="navbar-toggler-icon"></span>
-      </button>
+    <>
+      {/* Hamburger button (only visible when sidebar is closed) */}
+      {!open && (
+        <button
+          className="sidebar-toggle-btn d-md-none"
+          onClick={() => setOpen(true)}
+          aria-label="Open navigation"
+        >
+          <FaBars />
+        </button>
+      )}
 
-      <div className="collapse navbar-collapse" id="navbarNav">
-        <ul className="navbar-nav ms-auto">
-          <li className="nav-item">
-            <Link className="nav-link" to="/home">Home</Link>
-          </li>
-          <li className="nav-item">
-            <Link className="nav-link" to="/inventory">Inventory</Link>
-          </li>
-          <li className="nav-item">
-            <Link className="nav-link" to="/sales">Sales</Link>
-          </li>
-          <li className="nav-item">
-            <Link className="nav-link" to="/purchases">Purchases</Link>
-          </li>
-          <li className="nav-item">
-            <Link className="nav-link" to="/settings">Settings</Link>
-          </li>
-          {/* Logout button removed as requested */}
-        </ul>
-      </div>
-    </nav>
+      {/* Sidebar */}
+      <aside
+        id="sidebar"
+        className={`d-flex flex-column align-items-center ${open ? "open" : ""}`}
+      >
+        <div className="sidebar-header d-flex justify-content-between align-items-center w-100 px-3">
+          <h4 className="mt-3 mb-3 app-name text-center fw-bold">
+            Business Tracker
+          </h4>
+
+          {/* Close button (only when sidebar is open on small screens) */}
+          <button
+            className="close-sidebar-btn d-md-none"
+            onClick={() => setOpen(false)}
+            aria-label="Close navigation"
+          >
+            <FaTimes />
+          </button>
+        </div>
+
+        {/* Separator */}
+        <hr className="sidebar-separator" />
+
+        {/* Navigation */}
+        <nav className="nav flex-column w-100 text-center" onClick={() => setOpen(false)}>
+          <Link className="nav-link" to="/home">Home</Link>
+          <Link className="nav-link" to="/inventory">Inventory</Link>
+          <Link className="nav-link" to="/sales">Sales</Link>
+          <Link className="nav-link" to="/purchases">Purchases</Link>
+          <Link className="nav-link" to="/settings">Settings</Link>
+        </nav>
+      </aside>
+    </>
   );
 };
 

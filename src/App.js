@@ -10,10 +10,11 @@ import Login from "./components/Login";
 import SignUp from "./components/Signup";
 
 import SettingsPage from "./components/settings/SettingsPage";
-
 import Home from "./components/Home";
 import Inventory from "./components/Inventory/Inventory";
-import Navbar from "./components/Navbar";
+
+import Navbar from "./components/Navbar"; // sidebar
+
 import PrivateRoute from "./components/PrivateRoute";
 
 // Sales Components
@@ -28,24 +29,33 @@ import PurchaseForm from "./components/purchases/PurchaseForm";
 import PurchaseDetail from "./components/purchases/PurchaseDetail";
 import PurchaseStats from "./components/purchases/PurchaseStats";
 
+function AppLayout({ children }) {
+  return (
+    <>
+      <Navbar />
+      <div id="main-content">{children}</div>
+    </>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
       <Routes>
+        {/* Public routes */}
         <Route path="/" element={<Login />} />
         <Route path="/signin" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
 
-        {/* Protected Routes */}
+        {/* Protected routes inside layout */}
         <Route
           path="/home"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <Home />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
@@ -53,23 +63,19 @@ function App() {
           path="/inventory"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <Inventory />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
-
-        {/* Sales Routes */}
         <Route
           path="/sales"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <SalesPage />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
@@ -77,10 +83,9 @@ function App() {
           path="/sales/new"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <SaleForm />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
@@ -88,10 +93,9 @@ function App() {
           path="/sales/:sale_id"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <SaleDetail />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
@@ -99,22 +103,19 @@ function App() {
           path="/sales/stats"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <SalesStats />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
-
         <Route
           path="/purchases"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <PurchasesPage />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
@@ -122,10 +123,9 @@ function App() {
           path="/purchases/new"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <PurchaseForm />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
@@ -133,10 +133,9 @@ function App() {
           path="/purchases/:purchase_id"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <PurchaseDetail />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
@@ -144,10 +143,9 @@ function App() {
           path="/purchases/stats"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <PurchaseStats />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />
@@ -155,10 +153,9 @@ function App() {
           path="/settings"
           element={
             <PrivateRoute>
-              <>
-                <Navbar />
+              <AppLayout>
                 <SettingsPage />
-              </>
+              </AppLayout>
             </PrivateRoute>
           }
         />

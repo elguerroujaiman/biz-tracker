@@ -60,7 +60,7 @@ const Login = () => {
   };
 
   return (
-    <div className="d-flex align-items-center loginBox">
+    <div className="loginBox">
       <form onSubmit={handleSubmit} className="form-signin bg-white">
         <h3>Login</h3>
         {error && <div className="text-danger">{error}</div>}
@@ -71,6 +71,7 @@ const Login = () => {
           placeholder="Email address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          style={{ backgroundColor: '#f0f0f0', color: '#000000' }}
           required
         />
 
@@ -79,6 +80,7 @@ const Login = () => {
           className="form-control"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          style={{ backgroundColor: '#f0f0f0', color: '#000000' }}
           placeholder="Password"
           required
         />

@@ -19,8 +19,8 @@ const PurchasesPage = () => {
   const [filterText, setFilterText] = useState("");
   const [filteredPurchases, setFilteredPurchases] = useState([]);
   const [sortBy, setSortBy] = useState("Purchase ID");
-  const [sortAsc, setSortAsc] = useState(true);
-  const [detailRefreshKeys, setDetailRefreshKeys] = useState({}); // 👈 NEW
+  const [sortAsc, setSortAsc] = useState(false);
+  const [detailRefreshKeys, setDetailRefreshKeys] = useState({});
 
   const fetchProducts = async () => {
     try {
@@ -129,14 +129,16 @@ const PurchasesPage = () => {
   }
 };
 
-  const handleSortChange = (criterion) => {
-    if (sortBy === criterion) {
-      setSortAsc(!sortAsc);
-    } else {
-      setSortBy(criterion);
-      setSortAsc(true);
-    }
-  };
+const handleSortChange = (criterion) => {
+  if (sortBy === criterion) {
+    // If already sorting by this, toggle the direction
+    setSortAsc(prev => !prev);
+  } else {
+    // When selecting a new column, start in descending order
+    setSortBy(criterion);
+    setSortAsc(false);
+  }
+};
 
   const getArrow = (criterion) =>
     sortBy === criterion ? (sortAsc ? "↓" : "↑") : "";
@@ -161,6 +163,7 @@ const PurchasesPage = () => {
             placeholder="Search by Purchase ID or Notes"
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
+            className="custom-input"
           />
         </Col>
         <Col xs="auto">
@@ -199,7 +202,7 @@ const PurchasesPage = () => {
           const refreshKey = detailRefreshKeys[purchase.purchase_id] || 0;
 
           return (
-            <Card key={purchase.purchase_id} className="mb-3 shadow-sm">
+            <Card key={purchase.purchase_id} className="mb-3 shadow-sm custom-card-color">
               <Card.Body onClick={() => toggleExpanded(purchase.purchase_id)} style={{ cursor: "pointer" }}>
                 <div className="d-flex justify-content-between align-items-center flex-wrap">
                   <Card.Title className="mb-0">
@@ -237,7 +240,7 @@ const PurchasesPage = () => {
 
               <Collapse in={isExpanded}>
                 <div>
-                  <Card.Footer style={{ backgroundColor: "#f9f9f9" }}>
+                  <Card.Footer className="custom-detail">
                     <PurchaseDetail key={refreshKey} purchaseId={purchase.purchase_id} />
                   </Card.Footer>
                 </div>
@@ -248,7 +251,7 @@ const PurchasesPage = () => {
       )}
 
       {/* Add Purchase Modal */}
-      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg" contentClassName="custom-modal">
         <Modal.Header closeButton>
           <Modal.Title>New Purchase</Modal.Title>
         </Modal.Header>

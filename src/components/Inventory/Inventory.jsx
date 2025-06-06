@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ProductForm from "./ProductForm";
-import { Button, Table, Modal, Form, InputGroup, Dropdown } from "react-bootstrap";
+import { Button, Modal, Form, InputGroup, Dropdown } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
 import { toast } from "react-hot-toast";
 
@@ -133,6 +133,7 @@ function Inventory() {
             placeholder="Search by product name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            className="custom-input"
           />
         </InputGroup>
 
@@ -153,7 +154,7 @@ function Inventory() {
         </Dropdown>
       </div>
 
-      <Table striped bordered hover responsive className="text-center">
+      <table className="custom-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -180,7 +181,7 @@ function Inventory() {
                 <td>
                   <Button
                     size="sm"
-                    variant="warning"
+                    variant="outline-primary"
                     onClick={() => handleEdit(product)}
                     className="me-2"
                   >
@@ -204,10 +205,10 @@ function Inventory() {
             </tr>
           )}
         </tbody>
-      </Table>
+      </table>
 
       {/* Add/Edit Form Modal */}
-      <Modal show={showForm} onHide={() => handleCloseForm(false)}>
+      <Modal show={showForm} onHide={() => handleCloseForm(false)} size="lg" contentClassName="custom-modal">
         <Modal.Header closeButton>
           <Modal.Title>{editingProduct ? "Edit Product" : "Add Product"}</Modal.Title>
         </Modal.Header>

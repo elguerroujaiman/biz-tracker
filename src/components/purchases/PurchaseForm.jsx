@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { authFetch } from "../../utils/api";
-import { Form, Button, Table } from "react-bootstrap";
+import { Form, Button } from "react-bootstrap";
 import { toast } from "react-hot-toast";
 
 const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
@@ -143,9 +143,8 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
 
   return (
     <>
-      <h5>{editPurchase ? "Edit Purchase" : "Create Purchase"}</h5>
       <Form>
-        <Table striped bordered size="sm">
+        <table className="custom-table">
           <thead>
             <tr>
               <th>Product</th>
@@ -162,6 +161,7 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
                   <Form.Select
                     value={item.product_id}
                     onChange={(e) => handleItemChange(i, "product_id", e.target.value)}
+                    className="custom-input"
                     required
                   >
                     <option value="">Select Product</option>
@@ -178,6 +178,7 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
                     value={item.quantity}
                     onChange={(e) => handleItemChange(i, "quantity", e.target.value)}
                     min={1}
+                    className="custom-input"
                     required
                   />
                 </td>
@@ -187,6 +188,7 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
                     value={item.unit_price}
                     onChange={(e) => handleItemChange(i, "unit_price", e.target.value)}
                     min={0}
+                    className="custom-input"
                     step="0.01"
                     required
                   />
@@ -204,7 +206,7 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
               </tr>
             ))}
           </tbody>
-        </Table>
+        </table>
 
         <Button variant="success" size="sm" onClick={handleAddItem}>
           + Add Item
@@ -217,6 +219,7 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
             placeholder="Optional note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            className="custom-input"
           />
         </Form.Group>
 

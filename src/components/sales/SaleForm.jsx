@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { authFetch } from "../../utils/api";
-import { Form, Button, Table } from "react-bootstrap";
+import { Form, Button } from "react-bootstrap";
 import { toast } from "react-hot-toast";
 
 const SaleForm = ({ onSaleCreated }) => {
@@ -123,9 +123,8 @@ const SaleForm = ({ onSaleCreated }) => {
 
   return (
     <>
-      <h5>Create Sale</h5>
       <Form>
-        <Table striped bordered size="sm">
+      <table className="custom-table">
           <thead>
             <tr>
               <th>Product</th>
@@ -144,6 +143,7 @@ const SaleForm = ({ onSaleCreated }) => {
                     onChange={(e) =>
                       handleItemChange(i, "product_id", e.target.value)
                     }
+                    className="custom-input"
                     required
                   >
                     <option value="">Select Product</option>
@@ -162,6 +162,7 @@ const SaleForm = ({ onSaleCreated }) => {
                       handleItemChange(i, "quantity", e.target.value)
                     }
                     min={1}
+                    className="custom-input"
                     required
                   />
                 </td>
@@ -173,6 +174,7 @@ const SaleForm = ({ onSaleCreated }) => {
                       handleItemChange(i, "unit_price", e.target.value)
                     }
                     min={0}
+                    className="custom-input"
                     step="0.01"
                     required
                   />
@@ -190,7 +192,7 @@ const SaleForm = ({ onSaleCreated }) => {
               </tr>
             ))}
           </tbody>
-        </Table>
+        </table>
 
         <Button variant="success" size="sm" onClick={handleAddItem}>
           + Add Item
@@ -202,6 +204,7 @@ const SaleForm = ({ onSaleCreated }) => {
             type="text"
             placeholder="Optional note"
             value={note}
+            className="custom-input"
             onChange={(e) => setNote(e.target.value)}
           />
         </Form.Group>

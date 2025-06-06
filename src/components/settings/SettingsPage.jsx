@@ -63,6 +63,7 @@ const Settings = () => {
           <Form.Select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
+            className="custom-input"
           >
             <option value="$">$ - US Dollar</option>
             <option value="€">€ - Euro</option>
@@ -75,6 +76,7 @@ const Settings = () => {
           <Form.Select
             value={theme}
             onChange={(e) => setTheme(e.target.value)}
+            className="custom-input"
           >
             <option value="light">Light Mode</option>
             <option value="dark">Dark Mode</option>

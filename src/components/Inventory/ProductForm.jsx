@@ -97,6 +97,7 @@ function ProductForm({ product, onClose }) {
           name="name"
           value={form.name}
           onChange={handleChange}
+          className="custom-input"
           required
         />
       </Form.Group>
@@ -108,6 +109,7 @@ function ProductForm({ product, onClose }) {
           name="category"
           value={form.category}
           onChange={handleChange}
+          className="custom-input"
           required
         />
       </Form.Group>
@@ -119,6 +121,7 @@ function ProductForm({ product, onClose }) {
           name="unit_price"
           value={form.unit_price}
           onChange={handleChange}
+          className="custom-input"
           step="0.01"
           required
         />
@@ -131,6 +134,7 @@ function ProductForm({ product, onClose }) {
           name="total_quantity"
           value={form.total_quantity}
           onChange={handleChange}
+          className="custom-input"
           required
         />
       </Form.Group>

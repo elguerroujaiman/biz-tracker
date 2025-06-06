@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { authFetch } from "../../utils/api";
-import { Spinner, Table } from "react-bootstrap";
+import { Spinner} from "react-bootstrap";
 
 const PurchaseDetail = ({ purchaseId: propId }) => {
   // allow the component to work both inside a <Route> or via prop
@@ -45,7 +45,7 @@ const PurchaseDetail = ({ purchaseId: propId }) => {
       {items.length === 0 ? (
         <p>No items found for this purchase.</p>
       ) : (
-        <Table striped bordered hover size="sm" responsive>
+        <table className="custom-table">
           <thead>
             <tr>
               <th>Product</th>
@@ -66,7 +66,7 @@ const PurchaseDetail = ({ purchaseId: propId }) => {
               </tr>
             ))}
           </tbody>
-        </Table>
+        </table>
       )}
     </div>
   );

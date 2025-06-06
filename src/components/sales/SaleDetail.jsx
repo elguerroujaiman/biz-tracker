@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { authFetch } from "../../utils/api";
-import { Spinner, Table } from "react-bootstrap";
+import { Spinner } from "react-bootstrap";
 
 const SaleDetail = ({ sale_id: propSaleId }) => {
   const { sale_id: paramSaleId } = useParams();
@@ -39,7 +39,7 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
       <p><strong>Total Amount:</strong> ${Number(sale.total_amount).toFixed(2)}</p>
 
       <p><strong>Sale Items:</strong></p>
-      <Table striped bordered hover size="sm" responsive>
+      <table className="custom-table">
         <thead>
           <tr>
             <th>Product</th>
@@ -60,7 +60,7 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
             </tr>
           ))}
         </tbody>
-      </Table>
+      </table>
     </div>
   );
 };
