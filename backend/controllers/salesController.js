@@ -433,3 +433,32 @@ exports.getDailySales = async (req, res) => {
     res.status(500).json({ message: "Error fetching daily sales" });
   }
 };
+
+exports.getTopProducts = async (req, res) => {
+  const user  = req.user.id;
+  const limit = parseInt(req.query.limit) || 10;
+
+  try {
+    const [rows] = await db.query(
+      `
+      SELECT p.product_id,
+             p.name,
+             p.total_quantity AS stock,
+             SUM(si.quantity) AS unitsSold,
+             SUM(si.total_price) AS salesAmount
+      FROM sale_items si
+      JOIN sales s    ON si.sale_id = s.sale_id
+      JOIN products p ON si.product_id = p.product_id
+      WHERE s.user_id = ?
+      GROUP BY p.product_id
+      ORDER BY unitsSold DESC
+      LIMIT ?
+      `,
+      [user, limit]
+    );
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: "Error fetching top products" });
+  }
+};

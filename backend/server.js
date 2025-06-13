@@ -9,6 +9,7 @@ const authRoutes = require("./routes/authRoutes");
 const productRoutes = require("./routes/productRoutes");
 const salesRoutes = require("./routes/sales");
 const purchaseRoutes = require("./routes/purchases");
+const analyticsRoutes = require("./routes/analytics");
 const settingsRoutes = require("./routes/settingsRoutes");
 
 dotenv.config();
@@ -43,6 +44,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/purchases", purchaseRoutes); 
 app.use("/api/settings", settingsRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // Start the server
 app.listen(5000, () => {

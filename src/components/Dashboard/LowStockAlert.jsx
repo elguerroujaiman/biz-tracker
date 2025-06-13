@@ -1,24 +1,42 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { authFetch } from "../../utils/api";
+import { toast } from "react-hot-toast";
 
 const LowStockAlert = () => {
-  // Sample static data
-  const lowStockItems = [
-    { name: "Product D", stock: 3 },
-    { name: "Product F", stock: 2 },
-    { name: "Product G", stock: 1 },
-  ];
+  const [items, setItems]   = useState([]);
+  const [loading, setLoad]  = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res  = await authFetch("/products/low-stock?threshold=5");
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        setItems(data);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load low-stock products");
+      } finally {
+        setLoad(false);
+      }
+    };
+    load();
+  }, []);
+
+  if (loading) return <p>Loading low-stock alerts…</p>;
 
   return (
     <div className="bg-white border rounded-lg shadow-sm p-6 mt-6">
       <h2 className="text-lg font-semibold text-red-600 mb-4">Low Stock Alerts</h2>
-      {lowStockItems.length === 0 ? (
+
+      {items.length === 0 ? (
         <p className="text-sm text-gray-500">No products are currently low on stock.</p>
       ) : (
         <ul className="divide-y divide-gray-100">
-          {lowStockItems.map((item, index) => (
-            <li key={index} className="py-2 flex justify-between text-sm">
-              <span>{item.name}</span>
-              <span className="text-red-500 font-medium">{item.stock} left</span>
+          {items.map((p) => (
+            <li key={p.product_id} className="py-2 flex justify-between text-sm">
+              <span>{p.name}</span>
+              <span className="text-red-500 font-medium">{p.total_quantity} left</span>
             </li>
           ))}
         </ul>
