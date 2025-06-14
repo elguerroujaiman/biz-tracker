@@ -175,7 +175,9 @@ function Inventory() {
                 <td>{product.name}</td>
                 <td>{product.category}</td>
                 <td>${product.unit_price}</td>
-                <td>{product.total_quantity}</td>
+                <td className={product.total_quantity <= product.low_stock_threshold ? "low-stock" : ""}>
+                  {product.total_quantity}
+                </td>
                 <td>{new Date(product.created_at).toLocaleString("en-GB")}</td>
                 <td>{new Date(product.updated_at).toLocaleString("en-GB")}</td>
                 <td>

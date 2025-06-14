@@ -47,6 +47,7 @@ const SalesPage = () => {
       const getValue = (sale) => {
         if (sortBy === "Sale ID") return sale.sale_id;
         if (sortBy === "Total Amount") return Number(sale.total_amount);
+        if (sortBy === "Total Earnings") return Number(sale.total_earnings);
         return new Date(sale.sale_date);
       };
 
@@ -120,6 +121,9 @@ const SalesPage = () => {
               <Dropdown.Item eventKey="Total Amount">
                 Total Amount {getArrow("Total Amount")}
               </Dropdown.Item>
+              <Dropdown.Item eventKey="Total Earnings">
+                Total Earnings {getArrow("Total Earnings")}
+              </Dropdown.Item>
               <Dropdown.Item eventKey="Created At">
                 Created At {getArrow("Created At")}
               </Dropdown.Item>
@@ -190,7 +194,10 @@ const SalesPage = () => {
               </div>
 
               <Card.Subtitle className="mb-2 text-muted mt-2">
-                <GrMoney /> ${Number(sale.total_amount).toFixed(2)}
+                Total Amount: ${Number(sale.total_amount).toFixed(2)}
+              </Card.Subtitle>
+              <Card.Subtitle className="mb-2 text-muted mt-1">
+                <GrMoney /> Earnings: ${Number(sale.total_earnings).toFixed(2)}
               </Card.Subtitle>
               <Card.Text className="mb-0">
                 <em>Note&nbsp;:&nbsp;{sale.note?.trim() ? sale.note : "Empty"}</em>

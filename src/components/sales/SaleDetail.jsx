@@ -28,7 +28,6 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
   }, [sale_id]);
 
   if (loading) return <Spinner animation="border" size="sm" />;
-
   if (!sale) return <div>Sale not found.</div>;
 
   return (
@@ -37,6 +36,7 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
       <p><strong>Sale ID:</strong> {sale.sale_id}</p>
       <p><strong>Date:</strong> {new Date(sale.sale_date).toLocaleString("en-GB")}</p>
       <p><strong>Total Amount:</strong> ${Number(sale.total_amount).toFixed(2)}</p>
+      <p><strong>Total Earnings:</strong> ${Number(sale.total_earnings).toFixed(2)}</p>
 
       <p><strong>Sale Items:</strong></p>
       <table className="custom-table">
@@ -44,9 +44,10 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
           <tr>
             <th>Product</th>
             <th>Category</th>
-            <th>Quantiy</th>
+            <th>Quantity</th>
             <th>Unit Price</th>
             <th>Total</th>
+            <th>Earnings</th>
           </tr>
         </thead>
         <tbody>
@@ -57,6 +58,7 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
               <td>{item.quantity}</td>
               <td>${item.unit_price.toFixed(2)}</td>
               <td>${item.total_price.toFixed(2)}</td>
+              <td>${item.earnings.toFixed(2)}</td>
             </tr>
           ))}
         </tbody>

@@ -33,10 +33,8 @@ exports.getAllProducts = async (req, res) => {
 
 // CREATE a new product for logged-in user
 exports.createProduct = async (req, res) => {
-  const { name, category, unit_price, total_quantity } = req.body;
+  const { name, category, unit_price, total_quantity, low_stock_threshold = 0 } = req.body;
   const userId = req.user?.id;
-
-  console.log("Incoming product data:", { name, category, unit_price, total_quantity, userId });
 
   if (!name || !unit_price || !total_quantity || !userId) {
     return res.status(400).json({ error: "Missing required fields" });
@@ -44,8 +42,8 @@ exports.createProduct = async (req, res) => {
 
   try {
     const [result] = await db.query(
-      "INSERT INTO products (name, category, unit_price, total_quantity, user_id) VALUES (?, ?, ?, ?, ?)",
-      [name, category, unit_price, total_quantity, userId]
+      "INSERT INTO products (name, category, unit_price, total_quantity, low_stock_threshold, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+      [name, category, unit_price, total_quantity, low_stock_threshold, userId]
     );
     res.status(201).json({ message: "Product created", id: result.insertId });
   } catch (err) {
@@ -56,14 +54,14 @@ exports.createProduct = async (req, res) => {
 
 // UPDATE product only if it belongs to the user
 exports.updateProduct = async (req, res) => {
-  const { name, category, unit_price, total_quantity } = req.body;
+  const { name, category, unit_price, total_quantity, low_stock_threshold = 0 } = req.body;
   const { id } = req.params;
   const userId = req.user.id;
 
   try {
     const [result] = await db.query(
-      "UPDATE products SET name = ?, category = ?, unit_price = ?, total_quantity = ? WHERE product_id = ? AND user_id = ?",
-      [name, category, unit_price, total_quantity, id, userId]
+      "UPDATE products SET name = ?, category = ?, unit_price = ?, total_quantity = ?, low_stock_threshold = ? WHERE product_id = ? AND user_id = ?",
+      [name, category, unit_price, total_quantity, low_stock_threshold, id, userId]
     );
 
     if (result.affectedRows === 0) {
@@ -99,27 +97,20 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// GET low stock products (for dashboard)
+// GET low stock products (based on each product's own threshold)
 exports.getLowStockProducts = async (req, res) => {
   const userId = req.user.id;
-  let { threshold } = req.query;
-
-  // Validate threshold param
-  if (!threshold) {
-    return res.status(400).json({ error: "'threshold' query parameter is required" });
-  }
-
-  threshold = Number(threshold);
-
-  if (isNaN(threshold) || threshold <= 0 || !Number.isInteger(threshold)) {
-    return res.status(400).json({ error: "'threshold' must be a positive integer" });
-  }
 
   try {
     const [results] = await db.query(
-      "SELECT product_id, name, category, total_quantity FROM products WHERE user_id = ? AND total_quantity <= ?",
-      [userId, threshold]
+      `SELECT product_id, name, category, total_quantity, low_stock_threshold 
+       FROM products 
+       WHERE user_id = ? 
+         AND low_stock_threshold IS NOT NULL 
+         AND total_quantity <= low_stock_threshold`,
+      [userId]
     );
+
     res.json(results);
   } catch (err) {
     console.error("Error fetching low stock products:", err);

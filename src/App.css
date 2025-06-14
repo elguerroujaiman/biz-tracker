@@ -242,3 +242,8 @@ tbody tr {
   background-color: #aae4ff !important;
   color: #000000 !important;
 }
+
+.low-stock {
+  color: red !important;
+  font-weight: bold !important;
+}

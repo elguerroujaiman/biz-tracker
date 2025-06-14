@@ -6,7 +6,6 @@ import { authFetch } from "../../utils/api";
 import PurchaseForm from "./PurchaseForm";
 import PurchaseEditForm from "./PurchaseEditForm";
 import PurchaseDetail from "./PurchaseDetail";
-import { GrMoney } from "react-icons/gr";
 
 const PurchasesPage = () => {
   const [purchases, setPurchases] = useState([]);
@@ -231,7 +230,7 @@ const handleSortChange = (criterion) => {
                   </div>
                 </div>
                 <Card.Subtitle className="mb-2 text-muted mt-2">
-                  <GrMoney /> ${Number(purchase.total_amount).toFixed(2)}
+                  Total Amount: ${Number(purchase.total_amount).toFixed(2)}
                 </Card.Subtitle>
                 <Card.Text className="mb-0">
                   <em>Note&nbsp;:&nbsp;{purchase.notes?.trim() ? purchase.notes : "Empty"}</em>

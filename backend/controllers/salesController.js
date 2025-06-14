@@ -81,7 +81,8 @@ exports.getSales = async (req, res) => {
           'unit_price', si.unit_price,
           'total_price', si.total_price
         )
-      ) AS items
+      ) AS items,
+      SUM((si.unit_price - p.unit_price) * si.quantity) AS total_earnings
     FROM sales s
     JOIN sale_items si ON s.sale_id = si.sale_id
     JOIN products p ON si.product_id = p.product_id
@@ -117,7 +118,14 @@ exports.getSales = async (req, res) => {
 
   try {
     const [rows] = await db.query(query, values);
-    res.json(rows);
+
+    // Parse `items` field if needed (sometimes MySQL returns it as string)
+    const parsedRows = rows.map(row => ({
+      ...row,
+      items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items
+    }));
+
+    res.json(parsedRows);
   } catch (err) {
     console.error("Error fetching sales:", err);
     res.status(500).json({ message: "Error fetching sales" });
@@ -128,7 +136,7 @@ exports.getSaleById = async (req, res) => {
   const { sale_id } = req.params;
   const user_id = req.user.id;
 
-  let query = `
+  const query = `
     SELECT 
       s.sale_id, 
       s.sale_date, 
@@ -141,9 +149,11 @@ exports.getSaleById = async (req, res) => {
           'category', p.category,
           'quantity', si.quantity,
           'unit_price', si.unit_price,
-          'total_price', si.total_price
+          'total_price', si.total_price,
+          'earnings', (si.unit_price - p.unit_price) * si.quantity
         )
-      ) AS items
+      ) AS items,
+      SUM((si.unit_price - p.unit_price) * si.quantity) AS total_earnings
     FROM sales s
     JOIN sale_items si ON s.sale_id = si.sale_id
     JOIN products p ON si.product_id = p.product_id
@@ -158,7 +168,13 @@ exports.getSaleById = async (req, res) => {
       return res.status(404).json({ message: "Sale not found" });
     }
 
-    res.json(rows[0]);
+    // MySQL returns `items` as a string, so parse it once here
+    const sale = rows[0];
+    if (typeof sale.items === "string") {
+      sale.items = JSON.parse(sale.items);
+    }
+
+    res.json(sale);
   } catch (err) {
     console.error("Error fetching sale by ID:", err);
     res.status(500).json({ message: "Error fetching sale" });

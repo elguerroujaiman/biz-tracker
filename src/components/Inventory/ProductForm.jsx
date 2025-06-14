@@ -9,6 +9,7 @@ function ProductForm({ product, onClose }) {
     category: "",
     unit_price: "",
     total_quantity: "",
+    low_stock_threshold: ""
   });
   const [loading, setLoading] = useState(false);
 
@@ -21,6 +22,7 @@ function ProductForm({ product, onClose }) {
         category: product.category,
         unit_price: product.unit_price,
         total_quantity: product.total_quantity,
+        low_stock_threshold: product.low_stock_threshold ?? ""  // Fallback if null
       };
 
       setForm(productData);
@@ -133,6 +135,18 @@ function ProductForm({ product, onClose }) {
           type="number"
           name="total_quantity"
           value={form.total_quantity}
+          onChange={handleChange}
+          className="custom-input"
+          required
+        />
+      </Form.Group>
+
+      <Form.Group className="mb-3" controlId="low_stock_threshold">
+        <Form.Label>Low Stock Threshold</Form.Label>
+        <Form.Control
+          type="number"
+          name="low_stock_threshold"
+          value={form.low_stock_threshold}
           onChange={handleChange}
           className="custom-input"
           required

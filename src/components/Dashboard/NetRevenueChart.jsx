@@ -54,10 +54,8 @@ const NetRevenueChart = () => {
           const dayStr = String(day).padStart(2, "0");
           const monthStr = String(month).padStart(2, "0");
           const dateKey = `${year}-${monthStr}-${dayStr}`;
-
           const labelDate = new Date(year, month - 1, day); // Local date
           labels.push(format(labelDate, "d MMM"));
-
           const revenue = revenueMap[dateKey] || 0;
           data.push(revenue);
         }
@@ -88,6 +86,7 @@ const NetRevenueChart = () => {
 
   return (
     <div className="bg-white border rounded-lg shadow-sm p-6">
+      <h2 className="text-lg font-semibold text-red-600 mb-4">Earnings chart</h2>
       {/* Controls */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* Year */}

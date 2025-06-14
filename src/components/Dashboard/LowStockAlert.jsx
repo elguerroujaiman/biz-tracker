@@ -9,7 +9,7 @@ const LowStockAlert = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res  = await authFetch("/products/low-stock?threshold=5");
+        const res  = await authFetch("/products/low-stock");
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
         setItems(data);
@@ -35,8 +35,8 @@ const LowStockAlert = () => {
         <ul className="divide-y divide-gray-100">
           {items.map((p) => (
             <li key={p.product_id} className="py-2 flex justify-between text-sm">
-              <span>{p.name}</span>
-              <span className="text-red-500 font-medium">{p.total_quantity} left</span>
+              <span>{p.name} is low on stock : </span>
+              <span className="low-stock"> {p.total_quantity} left</span>
             </li>
           ))}
         </ul>
