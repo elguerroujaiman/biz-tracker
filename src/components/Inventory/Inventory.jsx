@@ -119,7 +119,7 @@ function Inventory() {
   };
 
   return (
-    <div className="container mt-4">
+    <div className="page-container">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>Inventory</h2>
         <Button onClick={() => setShowForm(true)}>+ Add Product</Button>

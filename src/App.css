@@ -1,6 +1,6 @@
 /* === Global Font Styling === */
 body {
-  font-family: "Brush Script MT", cursive !important;
+  font-family: 'Inter', sans-serif;
   font-size: 16px;
   font-weight: 400;
   line-height: 1.5;
@@ -25,143 +25,6 @@ body {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Default sidebar styling (desktop) */
-#sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 200px;
-  height: 100vh;
-  background: #1e1e2f;
-  padding: 0 0.5rem;
-  overflow-y: auto;
-  z-index: 1030;
-  transition: transform 0.3s ease-in-out;
-}
-
-/* Sidebar link styles */
-#sidebar .nav-link {
-  color: skyblue;
-  padding: 0.6rem 0;
-}
-#sidebar .nav-link.active,
-#sidebar .nav-link:hover {
-  background: #292948;
-  color: #fff;
-}
-
-/* Sidebar on mobile (hidden by default) */
-@media (max-width: 768px) {
-  #sidebar {
-    transform: translateX(-100%); /* Hide sidebar by default */
-  }
-
-  #sidebar.open {
-    transform: translateX(0); /* Slide in when open */
-  }
-
-  #main-content {
-    margin-left: 0 !important; /* Remove fixed margin */
-  }
-}
-
-/* Desktop layout adjustment */
-@media (min-width: 769px) {
-  #sidebar {
-    transform: none !important;
-  }
-
-  #main-content {
-    margin-left: 200px;
-  }
-}
-
-#sidebar .nav-link{
-  color:skyblue;
-  padding:0.6rem 0;
-}
-#sidebar .nav-link.active,
-#sidebar .nav-link:hover{
-  background:#292948;
-  color:#fff;
-}
-
-/* === main content wrapper === */
-#main-content {
-    margin-left: 200px;
-    margin-top: 0px;
-    padding: 1rem;
-    background-color: rgb(213, 237, 248); 
-    min-height: calc(100vh); /* Ensures full height without overflow */
-}
-
-#sidebar .app-name {
-    color: skyblue;
-  }
-
-  .sidebar-separator {
-    width:80%;
-    border: none;
-    border-top: 2px solid white;
-    margin: 0 auto;
-}
-
-/* === Hamburger (≡) button === */
-.sidebar-toggle-btn {
-  position: fixed;
-  top: 0px;
-  left: 0px;
-  z-index: 1050;
-  background: transparent;
-  border: none;
-  color: white;
-  font-size: 1.75rem;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  transition: background 0.2s ease;
-}
-
-.sidebar-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-/* === Close (×) button inside sidebar === */
-.close-sidebar-btn {
-  background: transparent;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  transition: background 0.2s ease;
-}
-
-.close-sidebar-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-
-/* Sidebar header container */
-.sidebar-header {
-  margin-top: 1rem;
-}
-
-/* Responsive sidebar */
-@media (max-width: 768px) {
-  #sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease-in-out;
-  }
-
-  #sidebar.open {
-    transform: translateX(0);
-  }
-
-  #main-content {
-    margin-left: 0;
-  }
-}
 
 /* === Custom Table Styling (zebra-striped blue) overriding Bootstrap === */
 
@@ -246,4 +109,109 @@ tbody tr {
 .low-stock {
   color: red !important;
   font-weight: bold !important;
+}
+
+
+
+/* === Topbar Styling === */
+.navbar-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 65px;
+  background-color: #1e293b; /* Dark navy */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  z-index: 999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.app-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #10b981; /* Mint accent */
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.navbar-top .nav-link {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.navbar-top .nav-link:hover,
+.navbar-top .nav-link.active {
+  color: #10b981;
+}
+
+/* Hamburger toggle for mobile */
+.topbar-toggle-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+/* Mobile menu styling */
+.mobile-nav {
+  background-color: #1e293b;
+  padding: 0.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-nav .nav-link {
+  padding: 0.6rem 0;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav .nav-link:hover {
+  color: #10b981;
+}
+
+/* === Page Content === */
+#main-content {
+  margin-top: 65px;
+  padding: 0rem;
+  background-color: #f1f5f9; /* Light slate gray/blue for content background */
+  min-height: calc(100vh - 70px);
+  box-sizing: border-box;
+}
+
+
+/* Prevent dark color on click/focus */
+.nav-link:focus,
+.nav-link:active {
+  color: #10B981 !important; /* Your mint green */
+  background-color: transparent !important;
+  outline: none;
+}
+
+/* Highlight the active nav link */
+.nav-link.active {
+  color: #10B981 !important;       /* Mint green */
+  font-weight: 600;
+  border-bottom: 2px solid #10B981;
+}
+
+.page-container {
+  max-width: 1200px;         /* Keeps content centered and not too wide */
+  margin: 0 auto;            /* Centers the container */
+  padding: 2rem 1.5rem;      /* Top-bottom + left-right padding */
+  box-sizing: border-box;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+  min-height: calc(100vh - 65px); /* Adjust if navbar is taller */
 }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { FaBars, FaTimes } from "react-icons/fa";
 
 const Navbar = () => {
@@ -7,50 +8,40 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Hamburger button (only visible when sidebar is closed) */}
-      {!open && (
+      {/* Topbar Navigation */}
+      <header className="navbar-top">
+        <div className="app-name">Business Tracker</div>
+
+        {/* Hamburger toggle (mobile) */}
         <button
-          className="sidebar-toggle-btn d-md-none"
-          onClick={() => setOpen(true)}
-          aria-label="Open navigation"
+          className="topbar-toggle-btn d-md-none"
+          onClick={() => setOpen(!open)}
+          aria-label="Toggle navigation"
         >
-          <FaBars />
+          {open ? <FaTimes /> : <FaBars />}
         </button>
-      )}
 
-      {/* Sidebar */}
-      <aside
-        id="sidebar"
-        className={`d-flex flex-column align-items-center ${open ? "open" : ""}`}
-      >
-        <div className="sidebar-header d-flex justify-content-between align-items-center w-100 px-3">
-          <h4 className="mt-3 mb-3 app-name text-center fw-bold">
-            Business Tracker
-          </h4>
-
-          {/* Close button (only when sidebar is open on small screens) */}
-          <button
-            className="close-sidebar-btn d-md-none"
-            onClick={() => setOpen(false)}
-            aria-label="Close navigation"
-          >
-            <FaTimes />
-          </button>
-        </div>
-
-        {/* Separator */}
-        <hr className="sidebar-separator" />
-
-        {/* Navigation */}
-        <nav className="nav flex-column w-100 text-center" onClick={() => setOpen(false)}>
-          <Link className="nav-link" to="/home">Home</Link>
-          <Link className="nav-link" to="/inventory">Inventory</Link>
-          <Link className="nav-link" to="/sales">Sales</Link>
-          <Link className="nav-link" to="/purchases">Purchases</Link>
-          <Link className="nav-link" to="/dashboard">Dashboard</Link>
-          <Link className="nav-link" to="/settings">Settings</Link>
+        <nav className="nav-links d-none d-md-flex">
+        <NavLink className="nav-link" to="/home">Home</NavLink>
+        <NavLink className="nav-link" to="/inventory">Inventory</NavLink>
+        <NavLink className="nav-link" to="/sales">Sales</NavLink>
+        <NavLink className="nav-link" to="/purchases">Purchases</NavLink>
+        <NavLink className="nav-link" to="/dashboard">Dashboard</NavLink>
+        <NavLink className="nav-link" to="/settings">Settings</NavLink>`
         </nav>
-      </aside>
+      </header>
+
+      {/* Mobile dropdown menu */}
+      {open && (
+        <nav className="mobile-nav d-md-none">
+          <Link className="nav-link" to="/home" onClick={() => setOpen(false)}>Home</Link>
+          <Link className="nav-link" to="/inventory" onClick={() => setOpen(false)}>Inventory</Link>
+          <Link className="nav-link" to="/sales" onClick={() => setOpen(false)}>Sales</Link>
+          <Link className="nav-link" to="/purchases" onClick={() => setOpen(false)}>Purchases</Link>
+          <Link className="nav-link" to="/dashboard" onClick={() => setOpen(false)}>Dashboard</Link>
+          <Link className="nav-link" to="/settings" onClick={() => setOpen(false)}>Settings</Link>
+        </nav>
+      )}
     </>
   );
 };

@@ -86,7 +86,7 @@ const SalesPage = () => {
     sortBy === criterion ? (sortAsc ? "↓" : "↑") : "";
 
   return (
-    <Container style={{ paddingTop: "2rem", maxWidth: "900px" }}>
+    <Container className="page-container">
       <Row className="align-items-center mb-4">
         <Col>
           <h2 style={{ fontWeight: "bold" }}>Sales</h2>

@@ -55,7 +55,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="container mt-4">
+    <div className="page-container">
       <h3>Settings</h3>
       <Form>
         <Form.Group className="mb-3">
