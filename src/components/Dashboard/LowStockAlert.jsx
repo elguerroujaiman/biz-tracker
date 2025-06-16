@@ -26,7 +26,7 @@ const LowStockAlert = () => {
   if (loading) return <p>Loading low-stock alerts…</p>;
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm p-6 mt-6">
+    <div className="dashboard-widget p-6 mt-6">
       <h2 className="text-lg font-semibold text-red-600 mb-4">Low Stock Alerts</h2>
 
       {items.length === 0 ? (

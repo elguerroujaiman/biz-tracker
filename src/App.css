@@ -120,7 +120,7 @@ tbody tr {
   left: 0;
   right: 0;
   height: 65px;
-  background-color: #1e293b; /* Dark navy */
+  background-color: #102036; /* Dark navy */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -163,10 +163,12 @@ tbody tr {
 
 /* Mobile menu styling */
 .mobile-nav {
-  background-color: #1e293b;
+  background-color: #102036;
   padding: 0.5rem 1.5rem;
   display: flex;
   flex-direction: column;
+  margin-top: 65px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .mobile-nav .nav-link {
@@ -214,4 +216,9 @@ tbody tr {
   padding-top: 3rem;
   padding-bottom: 3rem;
   min-height: calc(100vh - 65px); /* Adjust if navbar is taller */
+}
+
+
+.dashboard-widget {
+  background-color: #f1f5f9; 
 }

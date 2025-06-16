@@ -10,7 +10,7 @@ const Navbar = () => {
     <>
       {/* Topbar Navigation */}
       <header className="navbar-top">
-        <div className="app-name">Business Tracker</div>
+        <div className="app-name">Store Tracker</div>
 
         {/* Hamburger toggle (mobile) */}
         <button

@@ -85,7 +85,7 @@ const NetRevenueChart = () => {
   }, [year, month]);
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm p-6">
+    <div className="dashboard-widget p-6 mt-6">
       <h2 className="text-lg font-semibold text-red-600 mb-4">Earnings chart</h2>
       {/* Controls */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

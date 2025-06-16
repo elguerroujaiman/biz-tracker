@@ -26,7 +26,7 @@ const TopNetProduct = () => {
   if (loading) return <p>Loading top net product…</p>;
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm p-6">
+    <div className="dashboard-widget p-6 mt-6">
       <h2 className="text-lg font-semibold text-blue-600 mb-4">Top Net Revenue Product</h2>
 
       {!product ? (
