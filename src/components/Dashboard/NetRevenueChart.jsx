@@ -42,7 +42,6 @@ const NetRevenueChart = () => {
         rows.forEach((r) => {
           const shiftedDate = addDays(parseISO(r.day), 0);
           const shiftedKey = format(shiftedDate, "yyyy-MM-dd");
-          console.log("Original:", r.day, "Shifted:", shiftedKey);
           revenueMap[shiftedKey] = parseFloat(r.netRevenue);
         });
 
@@ -64,7 +63,7 @@ const NetRevenueChart = () => {
           labels,
           datasets: [
             {
-              label: "Net Revenue",
+              label: "Earnings",
               data,
               backgroundColor: "#10b981",
               borderRadius: 4,

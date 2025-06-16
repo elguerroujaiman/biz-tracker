@@ -10,7 +10,7 @@ body {
 .loginBox {
   min-height: 100vh;
   width: 100%;
-  background: rgb(204, 234, 247);
+  background: #fdf5f5;
 
   display: flex;
   align-items: center;
@@ -26,11 +26,11 @@ body {
 }
 
 
-/* === Custom Table Styling (zebra-striped blue) overriding Bootstrap === */
+/* === Themed Table Styling === */
 
 :root {
-  --row-even: #a8d0f3;
-  --row-odd: #8cb9e2;
+  --row-even: #e8faf3; /* very light mint */
+  --row-odd:  #d3f4e8; /* soft green */
 }
 
 /* Entire table */
@@ -40,21 +40,23 @@ table {
   background-color: #ffffff !important;
   font-size: 0.95rem !important;
   margin-bottom: 1.5rem !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
-  border-radius: 6px !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 8px !important;
   overflow: hidden !important;
+  color: #1a202c; /* dark gray text for contrast */
 }
 
 /* Header row */
 thead {
-  background-color: #292948 !important;
-  color: skyblue !important;
+  background-color: #14335e !important; /* same as navbar */
+  color: #10b981 !important;            /* mint green text */
   text-align: center !important;
 }
 
 thead th {
   padding: 0.75rem 1rem !important;
-  border-bottom: 2px solid #292948 !important;
+  border-bottom: 2px solid #10b981 !important;
+  font-weight: 600;
   text-align: center !important;
 }
 
@@ -67,42 +69,42 @@ tbody tr:nth-child(odd) {
   background-color: var(--row-odd) !important;
 }
 
-/* Hover row */
+/* Hover effect */
 tbody tr:hover {
-  background-color: #517ba1 !important;
+  background-color: #bef5dc !important; /* light mint highlight */
 }
 
 /* Cells */
 td {
-  padding: 0.65rem 1rem !important;
+  padding: 0.7rem 1rem !important;
   text-align: center !important;
-  color: #333 !important;
+  color: #1a202c !important; /* readable deep gray */
 }
 
-/* Optional: separator line */
+/* Row borders */
 tbody tr {
-  border-bottom: 1px solid #b9d9f1 !important;
+  border-bottom: 1px solid #bdeee1 !important;
 }
 
 .custom-modal {
-  background-color: rgb(204, 234, 247) !important; /* or any color you want */
+  background-color: #fdf5f5 !important;
   color: rgb(0, 0, 0) !important;
 }
 
 
 .custom-input {
-  background-color: #e9f6fc !important;
+  background-color: #dcf5ed !important;
   color: #000000 !important;
   border: 1px solid #78789c !important;
 }
 
 .custom-card-color {
-  background-color: rgb(154, 216, 243) !important;
+  background-color: #62f8c6 !important;
   color: rgb(0, 0, 0) !important;
 }
 
 .custom-detail {
-  background-color: #aae4ff !important;
+  background-color: #97fad9 !important;
   color: #000000 !important;
 }
 
@@ -120,7 +122,7 @@ tbody tr {
   left: 0;
   right: 0;
   height: 65px;
-  background-color: #102036; /* Dark navy */
+  background-color: #14335e; /* Dark navy */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -163,7 +165,7 @@ tbody tr {
 
 /* Mobile menu styling */
 .mobile-nav {
-  background-color: #102036;
+  background-color: #14335e;
   padding: 0.5rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -187,7 +189,7 @@ tbody tr {
 #main-content {
   margin-top: 65px;
   padding: 0rem;
-  background-color: #f1f5f9; /* Light slate gray/blue for content background */
+  background-color: #fdf5f5; 
   min-height: calc(100vh - 70px);
   box-sizing: border-box;
 }
@@ -220,5 +222,5 @@ tbody tr {
 
 
 .dashboard-widget {
-  background-color: #f1f5f9; 
+  background-color: #fdf5f5; 
 }
