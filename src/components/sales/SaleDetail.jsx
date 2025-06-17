@@ -32,9 +32,8 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
 
   return (
     <div>
-      <h5>Sale Details</h5>
-      <p><strong>Sale ID:</strong> {sale.sale_id}</p>
-      <p><strong>Date:</strong> {new Date(sale.sale_date).toLocaleString("en-GB")}</p>
+      <p><strong>Sale ID: </strong> {sale.sale_id}</p>
+      <p><strong>Date: </strong> {new Date(sale.sale_date).toLocaleString("en-GB")}</p>
       <p><strong>Total Amount:</strong> ${Number(sale.total_amount).toFixed(2)}</p>
       <p><strong>Total Earnings:</strong> ${Number(sale.total_earnings).toFixed(2)}</p>
 

@@ -88,3 +88,68 @@ exports.getTopNetProduct = async (req, res) => {
     res.status(500).json({ message: "Error fetching top net-revenue product" });
   }
 };
+
+/* ------------------------------------------------------------------ *
+ *  GET /api/analytics/earnings-per-product                           *
+ * ------------------------------------------------------------------ */
+exports.getEarningsPerProduct = async (req, res) => {
+  const userId = req.user.id;
+
+  const sql = `
+    SELECT 
+      p.name,
+      SUM((si.unit_price - p.unit_price) * si.quantity) AS earnings
+    FROM sale_items si
+    JOIN sales s ON si.sale_id = s.sale_id
+    JOIN products p ON si.product_id = p.product_id
+    WHERE s.user_id = ?
+    GROUP BY p.product_id
+    ORDER BY earnings DESC;
+  `;
+
+  try {
+    const [rows] = await db.query(sql, [userId]);
+
+    const totalEarnings = rows.reduce((sum, row) => sum + (row.earnings || 0), 0);
+
+    const formatted = rows.map(row => ({
+      name: row.name,
+      earnings: row.earnings,
+      percentage: totalEarnings > 0 ? parseFloat(((row.earnings / totalEarnings) * 100).toFixed(2)) : 0
+    }));
+
+    res.json(formatted);
+  } catch (err) {
+    console.error("getEarningsPerProduct error:", err);
+    res.status(500).json({ message: "Error fetching earnings per product" });
+  }
+};
+
+/* ------------------------------------------------------------------ *
+ *  GET /api/analytics/product-activity?sort=active|inactive          *
+ * ------------------------------------------------------------------ */
+exports.getProductActivity = async (req, res) => {
+  const userId = req.user.id;
+  const sort = req.query.sort === "active" ? "DESC" : "ASC";
+
+  const sql = `
+    SELECT 
+      p.product_id,
+      p.name,
+      MAX(${toLocal("s.sale_date")}) AS lastSold
+    FROM products p
+    LEFT JOIN sale_items si ON si.product_id = p.product_id
+    LEFT JOIN sales s ON s.sale_id = si.sale_id
+    WHERE p.user_id = ?
+    GROUP BY p.product_id
+    ORDER BY lastSold ${sort};
+  `;
+
+  try {
+    const [rows] = await db.query(sql, [userId]);
+    res.json(rows);
+  } catch (err) {
+    console.error("getProductActivity error:", err);
+    res.status(500).json({ message: "Error fetching product activity" });
+  }
+};

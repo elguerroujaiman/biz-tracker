@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import loginImage from "./LoginPageStyle/login-image.png";
+import "./LoginPageStyle/Login.css";
+import { VscEye, VscEyeClosed } from "react-icons/vsc";
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -7,13 +10,12 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberEmail");
     const savedPassword = localStorage.getItem("rememberPassword");
     const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-
-    
 
     if (savedEmail && savedPassword) {
       setEmail(savedEmail);
@@ -60,54 +62,76 @@ const Login = () => {
   };
 
   return (
-    <div className="loginBox">
-      <form onSubmit={handleSubmit} className="form-signin bg-white">
-        <h3>Login</h3>
-        {error && <div className="text-danger">{error}</div>}
+    <div className="login-page-container">
+      {/* Left Side (Form) */}
+      <div className="login-left">
+        <form onSubmit={handleSubmit} className="form-card">
+          <h3>Login</h3>
+          {error && <div className="text-danger mt-2">{error}</div>}
 
-        <input
-          type="email"
-          className="form-control mt-3"
-          placeholder="Email address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ backgroundColor: '#f0f0f0', color: '#000000' }}
-          required
-        />
-
-        <input
-          type="password"
-          className="form-control"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ backgroundColor: '#f0f0f0', color: '#000000' }}
-          placeholder="Password"
-          required
-        />
-
-        <div className="form-check mt-2 mb-2">
           <input
-            type="checkbox"
-            className="form-check-input"
-            id="rememberMe"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
+            type="email"
+            className="form-control mt-3 custom-input"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
-          <label className="form-check-label" htmlFor="rememberMe">
-            Remember Me
-          </label>
-        </div>
 
-        <div className="d-grid my-2">
-          <button type="submit" className="btn btn-primary btn-block mb-3">
+          <div className="input-icon-wrapper mt-3">
+            <input
+              type={showPassword ? "text" : "password"}
+              className="form-control custom-input"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            {showPassword ? (
+              <VscEyeClosed
+                className="input-icon"
+                onClick={() => setShowPassword(false)}
+              />
+            ) : (
+              <VscEye
+                className="input-icon"
+                onClick={() => setShowPassword(true)}
+              />
+            )}
+          </div>
+          
+          <div className="form-check mt-3 mb-3">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            />
+            <label className="form-check-label" htmlFor="rememberMe">
+              Remember Me
+            </label>
+          </div>
+
+          <button type="submit" className="btn btn-success w-100 mb-3">
             Login
           </button>
-        </div>
 
-        <div className="forgot-password form-inline">
-          New user? <Link to="/signup">Signup</Link>
-        </div>
-      </form>
+          <div className="text-center">
+            New user? <Link to="/signup">Signup</Link>
+          </div>
+        </form>
+      </div>
+
+      {/* Right Side (Hero-style image and shape background) */}
+      <div className="login-right">
+        <div className="image-shape-bg"></div>
+        <img
+          src={loginImage}
+          alt="Login Visual"
+          className="login-image"
+        />
+      </div>
     </div>
   );
 };

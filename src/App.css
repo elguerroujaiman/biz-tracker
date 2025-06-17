@@ -7,24 +7,6 @@ body {
   color: #ffffff; /* Optional: base text color */
 }
 
-.loginBox {
-  min-height: 100vh;
-  width: 100%;
-  background: #fdf5f5;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.form-signin {
-  max-width: 420px;
-  width: 100%;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
 
 /* === Themed Table Styling === */
 
@@ -93,18 +75,49 @@ tbody tr {
 
 
 .custom-input {
-  background-color: #dcf5ed !important;
+  background-color: #fdf5f5 !important;
   color: #000000 !important;
   border: 1px solid #78789c !important;
 }
 
-.custom-card-color {
-  background-color: #62f8c6 !important;
-  color: rgb(0, 0, 0) !important;
+
+.themed-card {
+  background: #fdf5f5; /* Matches your soft page background */
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(20, 51, 94, 0.12); /* Deep soft shadow */
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  border: none;
+  position: relative;
+  overflow: hidden;
 }
 
+/* On hover, lift the card a little */
+.themed-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(20, 51, 94, 0.18);
+}
+
+/* Optional: background glow behind card */
+.themed-card::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -30%;
+  width: 160%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15), transparent 70%);
+  z-index: 0;
+}
+
+/* Ensure content is above glow */
+.themed-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+
 .custom-detail {
-  background-color: #97fad9 !important;
+  background-color: #fdf5f5 !important;
   color: #000000 !important;
 }
 
@@ -112,7 +125,6 @@ tbody tr {
   color: red !important;
   font-weight: bold !important;
 }
-
 
 
 /* === Topbar Styling === */
@@ -224,3 +236,4 @@ tbody tr {
 .dashboard-widget {
   background-color: #fdf5f5; 
 }
+

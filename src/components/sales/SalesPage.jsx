@@ -16,6 +16,7 @@ const SalesPage = () => {
   const [sortAsc, setSortAsc] = useState(false);
   const [editingSaleId, setEditingSaleId] = useState(null);
   const [detailsRefreshKey, setDetailsRefreshKey] = useState(0);
+  const [detailSaleId, setDetailSaleId] = useState(null);
 
   const fetchSales = useCallback(async () => {
     try {
@@ -146,73 +147,78 @@ const SalesPage = () => {
       {filteredSales.length === 0 ? (
         <div className="text-center text-muted mt-5">No sales found</div>
       ) : (
-        filteredSales.map((sale) => (
-          <Card key={sale.sale_id} className="mb-3 shadow-sm custom-card-color">
-            <Card.Body onClick={() => toggleExpanded(sale.sale_id)} style={{ cursor: "pointer" }}>
-              <div className="d-flex justify-content-between align-items-center flex-wrap">
-                <Card.Title className="mb-0">
-                  <strong>Sale {sale.sale_id}</strong> :{" "}
-                  {new Date(sale.sale_date).toLocaleDateString("en-GB")}
-                </Card.Title>
-                <div className="d-flex gap-2">
-                  <Button
-                    variant="outline-primary"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingSaleId(sale.sale_id); // Open edit modal
-                    }}
-                  >
-                    Edit
-                  </Button>
-
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (window.confirm("Are you sure you want to delete this sale?")) {
-                        try {
-                          const res = await authFetch(`/sales/${sale.sale_id}`, {
-                            method: "DELETE",
-                          });
-                          if (res.ok) {
-                            fetchSales();
-                          } else {
-                            alert("Failed to delete sale");
+        <Row xs={1} md={2} lg={3} className="g-4">
+          {filteredSales.map((sale) => (
+            <Col key={sale.sale_id}>
+              <Card className="themed-card h-100">
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <Card.Title className="mb-0">
+                      <strong>Sale ID: {sale.sale_id}</strong>
+                    </Card.Title>
+                    <div className="d-flex gap-1">
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingSaleId(sale.sale_id);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (window.confirm("Are you sure you want to delete this sale?")) {
+                            try {
+                              const res = await authFetch(`/sales/${sale.sale_id}`, { method: "DELETE" });
+                              if (res.ok) {
+                                fetchSales();
+                              } else {
+                                alert("Failed to delete sale");
+                              }
+                            } catch (err) {
+                              console.error("Delete error:", err);
+                              alert("Something went wrong deleting the sale.");
+                            }
                           }
-                        } catch (err) {
-                          console.error("Delete error:", err);
-                          alert("Something went wrong deleting the sale.");
-                        }
-                      }
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
 
-              <Card.Subtitle className="mb-2 text-muted mt-2">
-                Total Amount: ${Number(sale.total_amount).toFixed(2)}
-              </Card.Subtitle>
-              <Card.Subtitle className="mb-2 text-muted mt-1">
-                <GrMoney /> Earnings: ${Number(sale.total_earnings).toFixed(2)}
-              </Card.Subtitle>
-              <Card.Text className="mb-0">
-                <em>Note&nbsp;:&nbsp;{sale.note?.trim() ? sale.note : "Empty"}</em>
-              </Card.Text>
-            </Card.Body>
+                  <Card.Subtitle className="mb-1 text-muted">
+                    {new Date(sale.sale_date).toLocaleDateString("en-GB")}
+                  </Card.Subtitle>
+                  <Card.Text className="mb-1">
+                    Total: <strong>${Number(sale.total_amount).toFixed(2)}</strong>
+                  </Card.Text>
+                  <Card.Text className="mb-1">
+                    <GrMoney /> Earnings: ${Number(sale.total_earnings).toFixed(2)}
+                  </Card.Text>
+                  <Card.Text>
+                    <em>Note:</em> {sale.note?.trim() || "Empty"}
+                  </Card.Text>
 
-            <Collapse in={expandedSaleId === sale.sale_id}>
-              <div>
-                <Card.Footer className="custom-detail">
-                  <SaleDetail key={`${sale.sale_id}-${detailsRefreshKey}`} sale_id={sale.sale_id} />
-                </Card.Footer>
-              </div>
-            </Collapse>
-          </Card>
-        ))
+                  <div className="text-end mt-3">
+                    <Button
+                      variant="success"
+                      size="sm"
+                      onClick={() => setDetailSaleId(sale.sale_id)}
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
       )}
       {editingSaleId && (
         <SaleEditForm
@@ -225,6 +231,20 @@ const SalesPage = () => {
           }}
         />
       )}
+      <Modal
+        show={!!detailSaleId}
+        onHide={() => setDetailSaleId(null)}
+        size="lg"
+        centered
+        contentClassName="custom-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Sale Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <SaleDetail sale_id={detailSaleId} />
+        </Modal.Body>
+      </Modal>
     </Container>
   );
 };

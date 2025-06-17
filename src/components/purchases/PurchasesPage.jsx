@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
-  Container, Row, Col, Button, Form, Modal, Dropdown, Card, Collapse
+  Container, Row, Col, Button, Form, Modal, Dropdown, Card
 } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
 import PurchaseForm from "./PurchaseForm";
@@ -9,8 +9,6 @@ import PurchaseDetail from "./PurchaseDetail";
 
 const PurchasesPage = () => {
   const [purchases, setPurchases] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [expandedPurchaseId, setExpandedPurchaseId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState(null);
@@ -19,19 +17,7 @@ const PurchasesPage = () => {
   const [filteredPurchases, setFilteredPurchases] = useState([]);
   const [sortBy, setSortBy] = useState("Purchase ID");
   const [sortAsc, setSortAsc] = useState(false);
-  const [detailRefreshKeys, setDetailRefreshKeys] = useState({});
-
-  const fetchProducts = async () => {
-    try {
-      const res = await authFetch("/products");
-      if (res.ok) {
-        const data = await res.json();
-        setProducts(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch products", err);
-    }
-  };
+  const [detailPurchaseId, setDetailPurchaseId] = useState(null);
 
   const fetchPurchases = useCallback(async () => {
     try {
@@ -44,7 +30,6 @@ const PurchasesPage = () => {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
     fetchPurchases();
   }, [fetchPurchases]);
 
@@ -62,21 +47,20 @@ const PurchasesPage = () => {
       const getValue = (purchase) => {
         if (sortBy === "Purchase ID") return purchase.purchase_id;
         if (sortBy === "Total Amount") return Number(purchase.total_amount);
-        return new Date(purchase.purchase_date);
+        if (sortBy === "Created At") return new Date(purchase.purchase_date);
+        return 0;
       };
 
       const aValue = getValue(a);
       const bValue = getValue(b);
 
-      return sortAsc ? aValue - bValue : bValue - aValue;
+      if (aValue < bValue) return sortAsc ? -1 : 1;
+      if (aValue > bValue) return sortAsc ? 1 : -1;
+      return 0;
     });
 
     setFilteredPurchases(updated);
   }, [purchases, filterText, sortBy, sortAsc]);
-
-  const toggleExpanded = (purchaseId) => {
-    setExpandedPurchaseId(prev => (prev === purchaseId ? null : purchaseId));
-  };
 
   const handlePurchaseCreated = () => {
     fetchPurchases();
@@ -85,12 +69,6 @@ const PurchasesPage = () => {
 
   const handlePurchaseUpdated = () => {
     fetchPurchases();
-    if (editingPurchase?.purchase_id) {
-      setDetailRefreshKeys(prev => ({
-        ...prev,
-        [editingPurchase.purchase_id]: (prev[editingPurchase.purchase_id] || 0) + 1
-      }));
-    }
     setEditingPurchase(null);
     setShowEditModal(false);
   };
@@ -108,42 +86,41 @@ const PurchasesPage = () => {
       setIsEditLoading(false);
     }
   };
-  
+
   const handleDelete = async (purchase_id, e) => {
-  e.stopPropagation();                             // keep card from toggling
-  if (!window.confirm("Are you sure you want to delete this purchase?")) return;
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this purchase?")) return;
 
-  try {
-    const res = await authFetch(`/purchases/${purchase_id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      fetchPurchases();                            // refresh list
-    } else {
-      alert("Failed to delete purchase");
+    try {
+      const res = await authFetch(`/purchases/${purchase_id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchPurchases();
+      } else {
+        alert("Failed to delete purchase");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Something went wrong deleting the purchase.");
     }
-  } catch (err) {
-    console.error("Delete error:", err);
-    alert("Something went wrong deleting the purchase.");
-  }
-};
+  };
 
-const handleSortChange = (criterion) => {
-  if (sortBy === criterion) {
-    // If already sorting by this, toggle the direction
-    setSortAsc(prev => !prev);
-  } else {
-    // When selecting a new column, start in descending order
-    setSortBy(criterion);
-    setSortAsc(false);
-  }
-};
+  const handleSortChange = (criterion) => {
+    if (sortBy === criterion) {
+      setSortAsc(prev => !prev);
+    } else {
+      setSortBy(criterion);
+      setSortAsc(false);
+    }
+  };
 
   const getArrow = (criterion) =>
     sortBy === criterion ? (sortAsc ? "↓" : "↑") : "";
 
   return (
     <Container className="page-container">
+      {/* Header */}
       <Row className="align-items-center mb-4">
         <Col>
           <h2 style={{ fontWeight: "bold" }}>Purchases</h2>
@@ -155,6 +132,7 @@ const handleSortChange = (criterion) => {
         </Col>
       </Row>
 
+      {/* Filter + Sort */}
       <Row className="mb-4 gx-2 align-items-center">
         <Col xs="auto" style={{ flexGrow: 1 }}>
           <Form.Control
@@ -185,68 +163,64 @@ const handleSortChange = (criterion) => {
         </Col>
       </Row>
 
+      {/* Purchases List */}
       {filteredPurchases.length === 0 ? (
         <div className="text-center text-muted mt-5">No purchases found</div>
       ) : (
-        filteredPurchases.map((purchase) => {
-          const items = purchase.items || [];
+        <Row xs={1} md={2} lg={3} className="g-4">
+          {filteredPurchases.map((purchase) => (
+            <Col key={purchase.purchase_id}>
+              <Card className="themed-card h-100">
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <Card.Title className="mb-0">
+                      <strong>Purchase ID: {purchase.purchase_id}</strong>
+                    </Card.Title>
+                    <div className="d-flex gap-1">
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(purchase);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={(e) => handleDelete(purchase.purchase_id, e)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
 
-          const productNames = items.map(item => item.product_name || `Product ${item.product_id}`);
-          const summary =
-            productNames.length > 2
-              ? `${productNames.slice(0, 2).join(", ")}...`
-              : productNames.join(", ");
-
-          const isExpanded = expandedPurchaseId === purchase.purchase_id;
-          const refreshKey = detailRefreshKeys[purchase.purchase_id] || 0;
-
-          return (
-            <Card key={purchase.purchase_id} className="mb-3 shadow-sm custom-card-color">
-              <Card.Body onClick={() => toggleExpanded(purchase.purchase_id)} style={{ cursor: "pointer" }}>
-                <div className="d-flex justify-content-between align-items-center flex-wrap">
-                  <Card.Title className="mb-0">
-                    <strong>Purchase {purchase.purchase_id}</strong> :{" "}
+                  <Card.Subtitle className="mb-1 text-muted">
                     {new Date(purchase.purchase_date).toLocaleDateString("en-GB")}
-                  </Card.Title>
-                  <div className="d-flex gap-2">
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      onClick={(e) => {
-                      e.stopPropagation();
-                      handleEdit(purchase);
-                      }}
-                    >
-                      Edit
-                    </Button>
+                  </Card.Subtitle>
+                  <Card.Text className="mb-1">
+                    Total: <strong>${Number(purchase.total_amount).toFixed(2)}</strong>
+                  </Card.Text>
+                  <Card.Text>
+                    <em>Note:</em> {purchase.notes?.trim() || "Empty"}
+                  </Card.Text>
 
+                  <div className="text-end mt-3">
                     <Button
-                      variant="danger"
+                      variant="success"
                       size="sm"
-                      onClick={(e) => handleDelete(purchase.purchase_id, e)}
+                      onClick={() => setDetailPurchaseId(purchase.purchase_id)}
                     >
-                      Delete
+                      View Details
                     </Button>
                   </div>
-                </div>
-                <Card.Subtitle className="mb-2 text-muted mt-2">
-                  Total Amount: ${Number(purchase.total_amount).toFixed(2)}
-                </Card.Subtitle>
-                <Card.Text className="mb-0">
-                  <em>Note&nbsp;:&nbsp;{purchase.notes?.trim() ? purchase.notes : "Empty"}</em>
-                </Card.Text>
-              </Card.Body>
-
-              <Collapse in={isExpanded}>
-                <div>
-                  <Card.Footer className="custom-detail">
-                    <PurchaseDetail key={refreshKey} purchaseId={purchase.purchase_id} />
-                  </Card.Footer>
-                </div>
-              </Collapse>
-            </Card>
-          );
-        })
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
       )}
 
       {/* Add Purchase Modal */}
@@ -285,6 +259,22 @@ const handleSortChange = (criterion) => {
               />
             )
           )}
+        </Modal.Body>
+      </Modal>
+
+      {/* Details Modal */}
+      <Modal
+        show={!!detailPurchaseId}
+        onHide={() => setDetailPurchaseId(null)}
+        size="lg"
+        centered
+        contentClassName="custom-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Purchase Details</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <PurchaseDetail purchaseId={detailPurchaseId} />
         </Modal.Body>
       </Modal>
     </Container>

@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+.signup-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fdf5f5;
+  height: 100vh;
+  font-family: 'Inter', sans-serif;
+  padding: 1rem;
+}
+
+.signup-card {
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(20, 51, 94, 0.1);
+  width: 100%;
+  max-width: 420px;
+}
+
+.signup-card h3 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #14335e;
+  margin-bottom: 1.5rem;
+}
+
+.signup-card input {
+  background-color: #f0f0f0;
+  color: #000000;
+  border: 1px solid #78789c;
+  padding: 0.75rem;
+  border-radius: 6px;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.input-icon-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input-icon-wrapper input {
+  padding-right: 2.5rem;
+  height: 44px;
+  box-sizing: border-box;
+}
+
+.input-icon {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  color: #6b7280;
+  font-size: 1.25rem;
+  cursor: pointer;
+  height: 1.5rem;
+  width: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.signup-card button {
+  background-color: #10B981;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.signup-card button:hover {
+  background-color: #059669;
+}
+
+.signup-card .text-center {
+  font-size: 0.95rem;
+}
+
+.signup-card a {
+  color: #10B981;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.signup-card a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .signup-card {
+    padding: 2rem 1.5rem;
+  }
+}

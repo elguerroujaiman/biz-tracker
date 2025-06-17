@@ -2,6 +2,8 @@ import React from "react";
 import LowStockAlert from "./LowStockAlert";
 import NetRevenueChart from "./NetRevenueChart";
 import TopNetProduct from "./TopNetProduct";
+import EarningsPerProductChart from "./EarningsPerProductChart";
+import ProductActivityList from "./ProductActivityList";
 
 const DashboardPage = () => {
   return (
@@ -19,7 +21,15 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <TopNetProduct />
       </div>
-    </div>
+      <div className="row">
+        <div className="col-md-6 mb-4">
+          <EarningsPerProductChart />
+        </div>
+        <div className="col-md-6 mb-4">
+          <ProductActivityList />
+        </div>
+      </div>
+    </div>    
   );
 };
 

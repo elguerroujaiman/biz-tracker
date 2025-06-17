@@ -35,8 +35,6 @@ const PurchaseDetail = ({ purchaseId: propId }) => {
 
   return (
     <div>
-      <h5>Purchase Details</h5>
-
       <p><strong>Purchase&nbsp;ID:</strong> {purchase.purchase_id}</p>
       <p><strong>Date:</strong> {new Date(purchase.purchase_date).toLocaleString("en-GB")}</p>
       <p><strong>Total&nbsp;Amount:</strong> ${Number(purchase.total_amount).toFixed(2)}</p>
