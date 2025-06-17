@@ -23,11 +23,11 @@ const TopNetProduct = () => {
     load();
   }, []);
 
-  if (loading) return <p>Loading top net product…</p>;
+  if (loading) return <p>Loading top earnings product…</p>;
 
   return (
     <div className="dashboard-widget p-6 mt-6">
-      <h2 className="text-lg font-semibold text-blue-600 mb-4">Top Net Revenue Product</h2>
+      <h2 className="text-lg font-semibold text-blue-600 mb-4">Top earnings Product</h2>
 
       {!product ? (
         <p className="text-sm text-gray-500">No data available for the selected period.</p>

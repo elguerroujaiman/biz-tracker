@@ -153,3 +153,44 @@ exports.getProductActivity = async (req, res) => {
     res.status(500).json({ message: "Error fetching product activity" });
   }
 };
+
+/**
+ * GET /api/analytics/product-revenue
+ * Query params:
+ *   - productId (required)
+ *   - year (required)
+ *   - month (required 1–12)
+ */
+exports.getProductRevenue = async (req, res) => {
+  const userId    = req.user.id;
+  const productId = parseInt(req.query.productId, 10);
+  const year      = parseInt(req.query.year, 10);
+  const month     = parseInt(req.query.month, 10);
+
+  if (!productId || !year || !month || month < 1 || month > 12) {
+    return res.status(400).json({ message: "productId, year, and month are required" });
+  }
+
+  // Aggregate daily net earnings: (sale_items.unit_price − products.unit_price) × quantity
+  const sql = `
+    SELECT DATE(s.sale_date) AS day,
+           SUM((si.unit_price - p.unit_price) * si.quantity) AS netRevenue
+    FROM sale_items si
+    JOIN sales s ON si.sale_id = s.sale_id
+    JOIN products p ON si.product_id = p.product_id
+    WHERE s.user_id = ?
+      AND si.product_id = ?
+      AND YEAR(s.sale_date) = ?
+      AND MONTH(s.sale_date) = ?
+    GROUP BY day
+    ORDER BY day;
+  `;
+
+  try {
+    const [rows] = await db.query(sql, [userId, productId, year, month]);
+    res.json(rows);
+  } catch (err) {
+    console.error("getProductRevenue error:", err);
+    res.status(500).json({ message: "Error fetching product revenue" });
+  }
+};

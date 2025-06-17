@@ -237,3 +237,235 @@ tbody tr {
   background-color: #fdf5f5; 
 }
 
+
+/* === Global Font Styling === */
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #ffffff;
+}
+
+/* === Global Table Styling (matching product-activity-table) === */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+thead {
+  background-color: #e5f3ed;
+  color: #14335e;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* === Sort Toggle Link === */
+.sort-toggle {
+  font-size: 0.85rem;
+  color: #10b981;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  text-align: right;
+}
+
+.sort-toggle:hover {
+  text-decoration: underline;
+}
+
+/* === Modal & Input === */
+.custom-modal {
+  background-color: #fdf5f5 !important;
+  color: rgb(0, 0, 0) !important;
+}
+
+.custom-input {
+  background-color: #fdf5f5 !important;
+  color: #000000 !important;
+  border: 1px solid #78789c !important;
+}
+
+/* === Themed Card === */
+.themed-card {
+  background: #fdf5f5;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(20, 51, 94, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.themed-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(20, 51, 94, 0.18);
+}
+
+.themed-card::before {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -30%;
+  width: 160%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15), transparent 70%);
+  z-index: 0;
+}
+
+.themed-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.custom-detail {
+  background-color: #fdf5f5 !important;
+  color: #000000 !important;
+}
+
+.low-stock {
+  color: red !important;
+  font-weight: bold !important;
+}
+
+/* === Navbar === */
+.navbar-top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 65px;
+  background-color: #14335e;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  z-index: 999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.app-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #10b981;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.2rem;
+}
+
+.navbar-top .nav-link {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.navbar-top .nav-link:hover,
+.navbar-top .nav-link.active {
+  color: #10b981;
+}
+
+.topbar-toggle-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.mobile-nav {
+  background-color: #14335e;
+  padding: 0.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  margin-top: 65px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav .nav-link {
+  padding: 0.6rem 0;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav .nav-link:hover {
+  color: #10b981;
+}
+
+/* === Page Content === */
+#main-content {
+  margin-top: 65px;
+  padding: 0rem;
+  background-color: #fdf5f5;
+  min-height: calc(100vh - 70px);
+  box-sizing: border-box;
+}
+
+.nav-link:focus,
+.nav-link:active {
+  color: #10B981 !important;
+  background-color: transparent !important;
+  outline: none;
+}
+
+.nav-link.active {
+  color: #10B981 !important;
+  font-weight: 600;
+  border-bottom: 2px solid #10B981;
+}
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+  box-sizing: border-box;
+  min-height: calc(100vh - 65px);
+}
+
+.dashboard-widget {
+  background-color: #fdf5f5;
+}
+
+/* === Card Style Wrapper === */
+.dashboard-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* === Chart Container (pie or bar) === */
+.dashboard-chart-container {
+  width: 100%;
+  height: 340px;
+  position: relative;
+}
+
+/* === Responsive tweaks === */
+@media (max-width: 768px) {
+  .row {
+    flex-direction: column;
+  }
+
+  .col-md-6 {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+}

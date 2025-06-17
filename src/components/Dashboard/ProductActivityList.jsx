@@ -40,8 +40,8 @@ const ProductActivityList = () => {
         </select>
       </div>
 
-      <table className="table table-bordered table-hover">
-        <thead className="table-light">
+      <table className="custom-table">
+        <thead>
           <tr>
             <th>Name</th>
             <th>Last Sold</th>
