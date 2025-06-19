@@ -3,13 +3,14 @@ import { Form, Button } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const Settings = () => {
   const [currency, setCurrency] = useState("$");
-  const [theme, setTheme] = useState("light");
   const navigate = useNavigate();
+  const { refreshSettings } = useSettings();
 
-  // Fetch user settings on mount
+  // Fetch current settings on mount
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -17,7 +18,6 @@ const Settings = () => {
         const data = await res.json();
         if (res.ok) {
           setCurrency(data.currency_symbol || "$");
-          setTheme(data.theme || "light");
         } else {
           toast.error("Failed to load settings.");
         }
@@ -33,14 +33,22 @@ const Settings = () => {
     try {
       const res = await authFetch("/settings", {
         method: "PUT",
-        body: JSON.stringify({ currency_symbol: currency, theme }),
+        body: JSON.stringify({ currency_symbol: currency }),
       });
+
       if (res.ok) {
         toast.success("Settings saved!");
+        try {
+          await refreshSettings();
+        } catch (err) {
+          console.error("Error refreshing settings:", err);
+          toast.error("Failed to refresh settings.");
+        }
       } else {
         toast.error("Failed to save settings.");
       }
     } catch (err) {
+      console.error("Error saving settings:", err);
       toast.error("Error saving settings.");
     }
   };
@@ -67,19 +75,7 @@ const Settings = () => {
           >
             <option value="$">$ - US Dollar</option>
             <option value="€">€ - Euro</option>
-            <option value="dh">dh - Moroccan Dirham</option>
-          </Form.Select>
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Theme</Form.Label>
-          <Form.Select
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            className="custom-input"
-          >
-            <option value="light">Light Mode</option>
-            <option value="dark">Dark Mode</option>
+            <option value="DH">DH - Moroccan Dirham</option>
           </Form.Select>
         </Form.Group>
 

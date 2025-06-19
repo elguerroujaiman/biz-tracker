@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { authFetch } from "../../utils/api";
 import { Spinner} from "react-bootstrap";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const PurchaseDetail = ({ purchaseId: propId }) => {
   // allow the component to work both inside a <Route> or via prop
@@ -10,6 +11,7 @@ const PurchaseDetail = ({ purchaseId: propId }) => {
 
   const [purchase, setPurchase] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { currency_symbol, loading: settingsLoading } = useSettings();
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -59,8 +61,8 @@ const PurchaseDetail = ({ purchaseId: propId }) => {
                 <td>{item.product_name}</td>
                 <td>{item.category}</td>
                 <td>{item.quantity}</td>
-                <td>${Number(item.unit_price).toFixed(2)}</td>
-                <td>${Number(item.total_price).toFixed(2)}</td>
+                <td>{Number(item.unit_price).toFixed(2)}{currency_symbol}</td>
+                <td>{Number(item.total_price).toFixed(2)}{currency_symbol}</td>
               </tr>
             ))}
           </tbody>

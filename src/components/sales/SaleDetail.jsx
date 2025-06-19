@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { authFetch } from "../../utils/api";
 import { Spinner } from "react-bootstrap";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const SaleDetail = ({ sale_id: propSaleId }) => {
   const { sale_id: paramSaleId } = useParams();
   const sale_id = propSaleId || paramSaleId;
   const [sale, setSale] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { currency_symbol, loading: settingsLoading } = useSettings();
 
   useEffect(() => {
     const fetchSaleDetails = async () => {
@@ -34,8 +36,8 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
     <div>
       <p><strong>Sale ID: </strong> {sale.sale_id}</p>
       <p><strong>Date: </strong> {new Date(sale.sale_date).toLocaleString("en-GB")}</p>
-      <p><strong>Total Amount:</strong> ${Number(sale.total_amount).toFixed(2)}</p>
-      <p><strong>Total Earnings:</strong> ${Number(sale.total_earnings).toFixed(2)}</p>
+      <p><strong>Total Amount:</strong> {Number(sale.total_amount).toFixed(2)}{currency_symbol}</p>
+      <p><strong>Total Earnings:</strong> {Number(sale.total_earnings).toFixed(2)}{currency_symbol}</p>
 
       <p><strong>Sale Items:</strong></p>
       <table className="custom-table">
@@ -55,9 +57,9 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
               <td>{item.product_name}</td>
               <td>{item.category}</td>
               <td>{item.quantity}</td>
-              <td>${item.unit_price.toFixed(2)}</td>
-              <td>${item.total_price.toFixed(2)}</td>
-              <td>${item.earnings.toFixed(2)}</td>
+              <td>{item.unit_price.toFixed(2)}{currency_symbol}</td>
+              <td>{item.total_price.toFixed(2)}{currency_symbol}</td>
+              <td>{item.earnings.toFixed(2)}{currency_symbol}</td>
             </tr>
           ))}
         </tbody>

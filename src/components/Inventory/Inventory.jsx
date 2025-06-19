@@ -3,6 +3,7 @@ import ProductForm from "./ProductForm";
 import { Button, Modal, Form, InputGroup, Dropdown } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
 import { toast } from "react-hot-toast";
+import { useSettings } from "../../contexts/SettingsContext";
 
 function Inventory() {
   const [products, setProducts] = useState([]);
@@ -14,7 +15,8 @@ function Inventory() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
-
+  const { currency_symbol, loading: settingsLoading } = useSettings();
+  
   const sortOptions = [
     { label: "Name", value: "name" },
     { label: "Category", value: "category" },
@@ -174,7 +176,7 @@ function Inventory() {
                 <td>{product.product_id}</td>
                 <td>{product.name}</td>
                 <td>{product.category}</td>
-                <td>${product.unit_price}</td>
+                <td>{product.unit_price}{currency_symbol}</td>
                 <td className={product.total_quantity <= product.low_stock_threshold ? "low-stock" : ""}>
                   {product.total_quantity}
                 </td>

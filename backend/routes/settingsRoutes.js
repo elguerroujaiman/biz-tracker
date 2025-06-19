@@ -12,4 +12,7 @@ router.put("/", authenticateToken, settingsController.updateSettings);
 // Get only the user's currency symbol
 router.get("/currency-symbol", authenticateToken, settingsController.getCurrencySymbol);
 
+// Change user password
+router.post("/change-password", authenticateToken, settingsController.changePassword);
+
 module.exports = router;

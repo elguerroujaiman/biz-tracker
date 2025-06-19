@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Form, Spinner } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const PurchaseEditForm = ({ purchaseId, onClose, onUpdated }) => {
   const [notes, setNote] = useState("");
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { currency_symbol, loading: settingsLoading } = useSettings();
 
   useEffect(() => {
     if (!purchaseId) return;
@@ -178,7 +180,7 @@ const PurchaseEditForm = ({ purchaseId, onClose, onUpdated }) => {
                         {item.unit_price.toFixed(2)}
                       </div>
                     </td>
-                    <td>${(item.total_price || 0).toFixed(2)}</td>
+                    <td>{(item.total_price || 0).toFixed(2)}{currency_symbol}</td>
                     <td>
                       <Button
                         variant="danger"

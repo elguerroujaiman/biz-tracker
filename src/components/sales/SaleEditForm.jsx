@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
   const [note, setNote] = useState("");
   const [items, setItems] = useState([]);
   const [products, setProducts] = useState([]);
+  const { currency_symbol, loading: settingsLoading } = useSettings();
 
   useEffect(() => {
     const fetchSaleAndProducts = async () => {
@@ -165,7 +167,7 @@ const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
                       required
                     />
                   </td>
-                  <td>${(item.total_price || 0).toFixed(2)}</td>
+                  <td>{(item.total_price || 0).toFixed(2)}{currency_symbol}</td>
                   <td>
                     <Button
                       variant="danger"

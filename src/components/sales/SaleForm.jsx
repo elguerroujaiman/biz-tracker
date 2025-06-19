@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { authFetch } from "../../utils/api";
 import { Form, Button } from "react-bootstrap";
 import { toast } from "react-hot-toast";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const SaleForm = ({ onSaleCreated }) => {
   const [products, setProducts] = useState([]);
@@ -16,6 +17,7 @@ const SaleForm = ({ onSaleCreated }) => {
   ]);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
+  const { currency_symbol, loading: settingsLoading } = useSettings();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -179,7 +181,7 @@ const SaleForm = ({ onSaleCreated }) => {
                     required
                   />
                 </td>
-                <td>${(item.total_price || 0).toFixed(2)}</td>
+                <td>{(item.total_price || 0).toFixed(2)}{currency_symbol}</td>
                 <td>
                   <Button
                     variant="danger"

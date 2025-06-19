@@ -33,6 +33,8 @@ import PurchaseStats from "./components/purchases/PurchaseStats";
 // Sales Components
 import DashboardPage from "./components/Dashboard/DashboardPage";
 
+import { SettingsProvider } from "./contexts/SettingsContext";
+
 function AppLayout({ children }) {
   return (
     <>
@@ -44,137 +46,139 @@ function AppLayout({ children }) {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Toaster position="top-right" />
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Login />} />
-        <Route path="/signin" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
+    <SettingsProvider>
+      <BrowserRouter>
+        <Toaster position="top-right" />
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Login />} />
+          <Route path="/signin" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
 
-        {/* Protected routes inside layout */}
-        <Route
-          path="/home"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <Home />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/inventory"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <Inventory />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/sales"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <SalesPage />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/sales/new"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <SaleForm />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/sales/:sale_id"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <SaleDetail />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/sales/stats"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <SalesStats />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/purchases"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <PurchasesPage />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/purchases/new"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <PurchaseForm />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/purchases/:purchase_id"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <PurchaseDetail />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/purchases/stats"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <PurchaseStats />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <DashboardPage />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <PrivateRoute>
-              <AppLayout>
-                <SettingsPage />
-              </AppLayout>
-            </PrivateRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+          {/* Protected routes inside layout */}
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <Home />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/inventory"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <Inventory />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/sales"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <SalesPage />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/sales/new"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <SaleForm />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/sales/:sale_id"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <SaleDetail />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/sales/stats"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <SalesStats />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/purchases"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <PurchasesPage />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/purchases/new"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <PurchaseForm />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/purchases/:purchase_id"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <PurchaseDetail />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/purchases/stats"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <PurchaseStats />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <DashboardPage />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <PrivateRoute>
+                <AppLayout>
+                  <SettingsPage />
+                </AppLayout>
+              </PrivateRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </SettingsProvider>
   );
 }
 

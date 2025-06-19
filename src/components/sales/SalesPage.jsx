@@ -5,6 +5,7 @@ import SaleForm from "./SaleForm";
 import SaleDetail from "./SaleDetail";
 import SaleEditForm from "./SaleEditForm";
 import { GrMoney } from "react-icons/gr";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const SalesPage = () => {
   const [sales, setSales] = useState([]);
@@ -17,6 +18,7 @@ const SalesPage = () => {
   const [editingSaleId, setEditingSaleId] = useState(null);
   const [detailsRefreshKey, setDetailsRefreshKey] = useState(0);
   const [detailSaleId, setDetailSaleId] = useState(null);
+  const { currency_symbol, loading: settingsLoading } = useSettings();
 
   const fetchSales = useCallback(async () => {
     try {
@@ -196,10 +198,10 @@ const SalesPage = () => {
                     {new Date(sale.sale_date).toLocaleDateString("en-GB")}
                   </Card.Subtitle>
                   <Card.Text className="mb-1">
-                    Total: <strong>${Number(sale.total_amount).toFixed(2)}</strong>
+                    Total: <strong>{Number(sale.total_amount).toFixed(2)}{currency_symbol}</strong>
                   </Card.Text>
                   <Card.Text className="mb-1">
-                    <GrMoney /> Earnings: ${Number(sale.total_earnings).toFixed(2)}
+                    <GrMoney /> Earnings: {Number(sale.total_earnings).toFixed(2)}{currency_symbol}
                   </Card.Text>
                   <Card.Text>
                     <em>Note:</em> {sale.note?.trim() || "Empty"}

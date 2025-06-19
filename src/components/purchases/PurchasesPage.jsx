@@ -6,6 +6,7 @@ import { authFetch } from "../../utils/api";
 import PurchaseForm from "./PurchaseForm";
 import PurchaseEditForm from "./PurchaseEditForm";
 import PurchaseDetail from "./PurchaseDetail";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const PurchasesPage = () => {
   const [purchases, setPurchases] = useState([]);
@@ -18,6 +19,7 @@ const PurchasesPage = () => {
   const [sortBy, setSortBy] = useState("Purchase ID");
   const [sortAsc, setSortAsc] = useState(false);
   const [detailPurchaseId, setDetailPurchaseId] = useState(null);
+  const { currency_symbol, loading: settingsLoading } = useSettings();
 
   const fetchPurchases = useCallback(async () => {
     try {
@@ -201,7 +203,7 @@ const PurchasesPage = () => {
                     {new Date(purchase.purchase_date).toLocaleDateString("en-GB")}
                   </Card.Subtitle>
                   <Card.Text className="mb-1">
-                    Total: <strong>${Number(purchase.total_amount).toFixed(2)}</strong>
+                    Total: <strong>{Number(purchase.total_amount).toFixed(2)}{currency_symbol}</strong>
                   </Card.Text>
                   <Card.Text>
                     <em>Note:</em> {purchase.notes?.trim() || "Empty"}
