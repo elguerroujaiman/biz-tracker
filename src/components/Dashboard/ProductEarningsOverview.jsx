@@ -131,13 +131,14 @@ const ProductEarningsOverview = () => {
               <tr key={product.product_id}>
                 <td>{product.name}</td>
                 <td>
-                  <Button
-                    variant="primary"
-                    className="dashboard-button mt-4 btn-sm"
-                    onClick={() => openModalForProduct(product)}
-                  >
-                    View Chart
-                  </Button>
+                <Button
+                  variant="primary"
+                  className="dashboard-button btn-sm py-2 px-3"
+                  onClick={() => openModalForProduct(product)}
+                  style={{ fontSize: "0.75rem", lineHeight: "1", verticalAlign: "middle" }}
+                >
+                  View Chart
+                </Button>
                 </td>
               </tr>
             ))
@@ -166,7 +167,9 @@ const ProductEarningsOverview = () => {
                 onChange={(e) => handleSelectorChange("year", +e.target.value)}
               >
                 {yearOptions.map((y) => (
-                  <option key={y} value={y}>{y}</option>
+                  <option key={y} value={y}>
+                    {y === CUR_YEAR ? `${y} (Current)` : y}
+                  </option>
                 ))}
               </select>
             </div>
@@ -178,7 +181,9 @@ const ProductEarningsOverview = () => {
                 onChange={(e) => handleSelectorChange("month", +e.target.value)}
               >
                 {monthOptions.map((m) => (
-                  <option key={m} value={m}>{m}</option>
+                  <option key={m} value={m}>
+                    {m === CUR_MONTH && year === CUR_YEAR ? `${m} (Current)` : m}
+                  </option>
                 ))}
               </select>
             </div>

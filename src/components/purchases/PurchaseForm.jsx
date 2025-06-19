@@ -183,15 +183,9 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
                   />
                 </td>
                 <td>
-                  <Form.Control
-                    type="number"
-                    value={item.unit_price}
-                    onChange={(e) => handleItemChange(i, "unit_price", e.target.value)}
-                    min={0}
-                    className="custom-input"
-                    step="0.01"
-                    required
-                  />
+                  <div>
+                    ${item.unit_price.toFixed(2)}
+                  </div>
                 </td>
                 <td>${(item.total_price || 0).toFixed(2)}</td>
                 <td>

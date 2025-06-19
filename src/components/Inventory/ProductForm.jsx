@@ -38,53 +38,59 @@ function ProductForm({ product, onClose }) {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  const price = parseFloat(form.unit_price);
-  const quantity = parseFloat(form.total_quantity);
-
-  if (price < 0 || quantity < 0) {
-    toast.error("Price and total quantity must not be negative.");
-    return;
-  }
-
-  // Only check for changes if editing
-  if (product && initialForm) {
-    const noChanges = Object.keys(initialForm).every(
-      (key) => String(form[key]) === String(initialForm[key])
-    );
-
-    if (noChanges) {
-      toast.error("No changes detected.");
+    e.preventDefault();
+  
+    const price = parseFloat(form.unit_price);
+    const quantity = parseFloat(form.total_quantity);
+  
+    if (price < 0 || quantity < 0) {
+      toast.error("Price and total quantity must not be negative.");
       return;
     }
-  }
-
-  setLoading(true);
-  try {
-    const method = product ? "PUT" : "POST";
-    const url = product ? `/products/${product.product_id}` : "/products";
-
-    const res = await authFetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-
-    if (res.ok) {
-      onClose(true);
-    } else {
-      const errorData = await res.json();
-      console.error("Save error:", errorData);
-      toast.error(errorData.message || "Failed to save product.");
+  
+    if (product && initialForm) {
+      const noChanges = Object.keys(initialForm).every(
+        (key) => String(form[key]) === String(initialForm[key])
+      );
+  
+      if (noChanges) {
+        toast.error("No changes detected.");
+        return;
+      }
     }
-  } catch (error) {
-    console.error("Save error:", error);
-    toast.error("Failed to save product.");
-  } finally {
-    setLoading(false);
-  }
-};
+  
+    setLoading(true);
+    try {
+      const method = product ? "PUT" : "POST";
+      const url = product ? `/products/${product.product_id}` : "/products";
+  
+      const res = await authFetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+  
+      if (res.ok) {
+        onClose(true);
+      } else {
+        const errorData = await res.json();
+  
+        // ✅ Specific error for duplicate product name
+        if (res.status === 409) {
+          toast.error("A product with this name already exists.");
+        } else {
+          toast.error(errorData.message || "Failed to save product.");
+        }
+  
+        console.error("Save error:", errorData);
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      toast.error("Failed to save product.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCancel = () => {
     onClose(false); // <--- Just close without refreshing or showing success toast

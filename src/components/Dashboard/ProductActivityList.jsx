@@ -52,7 +52,7 @@ const ProductActivityList = () => {
             products.map((p) => (
               <tr key={p.product_id}>
                 <td>{p.name}</td>
-                <td>{p.lastSold ? new Date(p.lastSold).toLocaleString() : "Never Sold"}</td>
+                <td>{p.lastSold ? new Date(p.lastSold).toLocaleString("en-GB") : "Never Sold"}</td>
               </tr>
             ))
           ) : (

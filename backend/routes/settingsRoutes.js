@@ -9,4 +9,7 @@ router.get("/", authenticateToken, settingsController.getSettings);
 // Update current user's settings
 router.put("/", authenticateToken, settingsController.updateSettings);
 
+// Get only the user's currency symbol
+router.get("/currency-symbol", authenticateToken, settingsController.getCurrencySymbol);
+
 module.exports = router;

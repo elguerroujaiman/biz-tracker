@@ -12,21 +12,32 @@ exports.createPurchase = async (req, res) => {
 
   try {
     const purchaseId = await withTransaction(async (conn) => {
+      let totalAmount = 0;
+      const validatedItems = [];
+
+      // Validate products and get accurate prices
       for (const item of items) {
         const [rows] = await conn.query(
-          "SELECT product_id FROM products WHERE product_id = ?",
-          [item.product_id]
+          "SELECT product_id, unit_price FROM products WHERE product_id = ? AND user_id = ?",
+          [item.product_id, user_id]
         );
+
         if (rows.length === 0) {
           throw new Error(`Product with ID ${item.product_id} not found`);
         }
+
+        const actualPrice = rows[0].unit_price;
+        const itemTotal = actualPrice * item.quantity;
+        totalAmount += itemTotal;
+
+        validatedItems.push({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: actualPrice
+        });
       }
 
-      let totalAmount = 0;
-      items.forEach(item => {
-        totalAmount += item.price * item.quantity;
-      });
-
+      // Insert the purchase
       const [purchaseResult] = await conn.query(
         "INSERT INTO purchases (user_id, total_amount, notes) VALUES (?, ?, ?)",
         [user_id, totalAmount, notes || null]
@@ -34,10 +45,11 @@ exports.createPurchase = async (req, res) => {
 
       const purchaseId = purchaseResult.insertId;
 
-      for (const item of items) {
+      // Insert items and update product quantities
+      for (const item of validatedItems) {
         await conn.query(
           "INSERT INTO purchase_items (purchase_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
-          [purchaseId, item.product_id, item.quantity, item.price]
+          [purchaseId, item.product_id, item.quantity, item.unit_price]
         );
 
         await conn.query(
@@ -49,10 +61,15 @@ exports.createPurchase = async (req, res) => {
       return purchaseId;
     });
 
-    res.status(201).json({ message: "Purchase recorded successfully", purchase_id: purchaseId });
+    res.status(201).json({
+      message: "Purchase recorded successfully",
+      purchase_id: purchaseId
+    });
   } catch (err) {
     console.error("Error creating purchase:", err);
-    res.status(400).json({ message: err.message || "Error creating purchase" });
+    res.status(400).json({
+      message: err.message || "Error creating purchase"
+    });
   }
 };
 
@@ -299,12 +316,24 @@ exports.updatePurchase = async (req, res) => {
       await conn.query("DELETE FROM purchase_items WHERE purchase_id = ?", [purchase_id]);
 
       let totalAmount = 0;
+
       for (const item of items) {
-        totalAmount += item.price * item.quantity;
+        // Get the correct unit price from the products table
+        const [[product]] = await conn.query(
+          "SELECT unit_price FROM products WHERE product_id = ?",
+          [item.product_id]
+        );
+
+        if (!product) {
+          throw new Error(`Product with ID ${item.product_id} not found`);
+        }
+
+        const itemTotal = product.unit_price * item.quantity;
+        totalAmount += itemTotal;
 
         await conn.query(
           "INSERT INTO purchase_items (purchase_id, product_id, quantity, price) VALUES (?, ?, ?, ?)",
-          [purchase_id, item.product_id, item.quantity, item.price]
+          [purchase_id, item.product_id, item.quantity, product.unit_price]
         );
 
         await conn.query(

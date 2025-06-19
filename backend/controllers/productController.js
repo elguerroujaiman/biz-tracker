@@ -41,10 +41,22 @@ exports.createProduct = async (req, res) => {
   }
 
   try {
+    // 1. Check if a product with the same name already exists for the user
+    const [existing] = await db.query(
+      "SELECT 1 FROM products WHERE name = ? AND user_id = ? LIMIT 1",
+      [name, userId]
+    );
+
+    if (existing.length > 0) {
+      return res.status(409).json({ error: "A product with this name already exists." });
+    }
+
+    // 2. Proceed to insert if not exists
     const [result] = await db.query(
       "INSERT INTO products (name, category, unit_price, total_quantity, low_stock_threshold, user_id) VALUES (?, ?, ?, ?, ?, ?)",
       [name, category, unit_price, total_quantity, low_stock_threshold, userId]
     );
+
     res.status(201).json({ message: "Product created", id: result.insertId });
   } catch (err) {
     console.error("Error creating product:", err);

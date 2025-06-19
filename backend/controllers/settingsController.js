@@ -50,3 +50,25 @@ exports.updateSettings = async (req, res) => {
     res.status(500).json({ error: "Failed to update settings" });
   }
 };
+
+// GET only the user's currency symbol
+exports.getCurrencySymbol = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const [[row]] = await db.query(
+      "SELECT currency_symbol FROM user_settings WHERE user_id = ?",
+      [userId]
+    );
+
+    if (!row) {
+      // Return default symbol if not found
+      return res.json({ currency_symbol: "$" });
+    }
+
+    res.json({ currency_symbol: row.currency_symbol || "$" });
+  } catch (err) {
+    console.error("Error fetching currency symbol:", err);
+    res.status(500).json({ error: "Failed to fetch currency symbol" });
+  }
+};

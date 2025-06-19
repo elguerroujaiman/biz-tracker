@@ -136,7 +136,7 @@ exports.getProductActivity = async (req, res) => {
     SELECT 
       p.product_id,
       p.name,
-      MAX(${toLocal("s.sale_date")}) AS lastSold
+      MAX(s.sale_date) AS lastSold
     FROM products p
     LEFT JOIN sale_items si ON si.product_id = p.product_id
     LEFT JOIN sales s ON s.sale_id = si.sale_id
