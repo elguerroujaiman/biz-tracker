@@ -47,10 +47,18 @@ const EarningsPerProductChart = () => {
   }, [token]);
 
   return (
-    <div className="card p-4 shadow-sm">
-      <h4 className="mb-3">Earnings by Product</h4>
+    <div style={{ padding: "1rem", height: "100%" }}>
+      <h2 className="text-lg font-semibold text-red-600 mb-4">Earnings by Product</h2>
       {chartData ? (
-        <Pie data={chartData} />
+        <div style={{ position: "relative", height: "400px" }}>
+          <Pie
+            data={chartData}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false, // allows the chart to grow taller
+            }}
+          />
+        </div>
       ) : (
         <p>Loading chart...</p>
       )}

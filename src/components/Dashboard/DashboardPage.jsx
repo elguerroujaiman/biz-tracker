@@ -8,21 +8,14 @@ import ProductEarningsOverview from "./ProductEarningsOverview";
 const DashboardPage = () => {
   return (
     <div className="page-container">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Dashboard Overview</h1>
+      <h2 style={{ fontWeight: "bold", marginBottom: "2rem" }}>Dashboard Overview</h2>
 
-      {/* Low Stock Alert */}
-      <div className="dashboard-card mb-6">
-        <LowStockAlert />
-      </div>
-
-      {/* Net Revenue Line Chart */}
-      <div className="dashboard-card mb-6">
+      {/* === Top: Net Revenue Chart === */}
+      <div className="dashboard-card mb-4">
         <NetRevenueChart />
       </div>
 
-      <ProductEarningsOverview />
-
-      {/* Row for Earnings per Product & Product Activity */}
+      {/* === Middle Row: Earnings Chart & Product Overview === */}
       <div className="row">
         <div className="col-md-6 mb-4">
           <div className="dashboard-card dashboard-chart-container">
@@ -31,7 +24,21 @@ const DashboardPage = () => {
         </div>
         <div className="col-md-6 mb-4">
           <div className="dashboard-card">
+            <ProductEarningsOverview />
+          </div>
+        </div>
+      </div>
+
+      {/* === Bottom Row: Activity List (2/3) & Low Stock (1/3) === */}
+      <div className="row">
+        <div className="col-md-8 mb-4">
+          <div className="dashboard-card">
             <ProductActivityList />
+          </div>
+        </div>
+        <div className="col-md-4 mb-4">
+          <div className="dashboard-card">
+            <LowStockAlert />
           </div>
         </div>
       </div>

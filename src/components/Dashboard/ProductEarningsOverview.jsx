@@ -112,7 +112,7 @@ const ProductEarningsOverview = () => {
 
   return (
     <div className="dashboard-widget p-6 mt-6">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">All Products Earnings</h2>
+      <h2 className="text-lg font-semibold text-red-600 mb-4">All Products Earnings</h2>
 
       <table className="product-activity-table">
         <thead>

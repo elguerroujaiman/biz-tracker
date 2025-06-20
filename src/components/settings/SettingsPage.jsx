@@ -1,16 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { Form, Button } from "react-bootstrap";
+import { Form, Button, Modal } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useSettings } from "../../contexts/SettingsContext";
+import { VscEye, VscEyeClosed } from "react-icons/vsc";
 
 const Settings = () => {
   const [currency, setCurrency] = useState("$");
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const navigate = useNavigate();
   const { refreshSettings } = useSettings();
 
-  // Fetch current settings on mount
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -62,9 +71,46 @@ const Settings = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Please fill in all fields.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+
+    try {
+      const res = await authFetch("/settings/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Password changed successfully!");
+        setShowPasswordModal(false);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast.error(data.error || "Failed to change password.");
+      }
+    } catch (err) {
+      console.error("Error changing password:", err);
+      toast.error("Something went wrong.");
+    }
+  };
+
   return (
     <div className="page-container">
-      <h3>Settings</h3>
+      <h2 style={{ fontWeight: "bold" }}>Settings</h2>
       <Form>
         <Form.Group className="mb-3">
           <Form.Label>Preferred Currency</Form.Label>
@@ -86,9 +132,80 @@ const Settings = () => {
 
       <hr />
 
+      <Button variant="secondary" onClick={() => setShowPasswordModal(true)}>
+        Change Password
+      </Button>
+
+      <br />
+      <br />
+
       <Button variant="outline-danger" onClick={handleLogout}>
         Logout
       </Button>
+
+      {/* Change Password Modal */}
+      <Modal
+        show={showPasswordModal}
+        onHide={() => setShowPasswordModal(false)}
+        size="lg"
+        contentClassName="custom-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Change Password</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            {/* Current Password */}
+            <Form.Group className="mb-3">
+              <Form.Label>Current Password</Form.Label>
+              <div className="input-icon-wrapper">
+                <Form.Control
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+                <span className="input-icon" onClick={() => setShowCurrent((prev) => !prev)}>
+                  {showCurrent ? <VscEyeClosed /> : <VscEye />}
+                </span>
+              </div>
+            </Form.Group>
+
+            {/* New Password */}
+            <Form.Group className="mb-3">
+              <Form.Label>New Password</Form.Label>
+              <div className="input-icon-wrapper">
+                <Form.Control
+                  type={showNew ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <span className="input-icon" onClick={() => setShowNew((prev) => !prev)}>
+                  {showNew ? <VscEyeClosed /> : <VscEye />}
+                </span>
+              </div>
+            </Form.Group>
+
+            {/* Confirm Password */}
+            <Form.Group className="mb-3">
+              <Form.Label>Confirm New Password</Form.Label>
+              <div className="input-icon-wrapper">
+                <Form.Control
+                  type={showConfirm ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                <span className="input-icon" onClick={() => setShowConfirm((prev) => !prev)}>
+                  {showConfirm ? <VscEyeClosed /> : <VscEye />}
+                </span>
+              </div>
+            </Form.Group>
+
+            <Button variant="primary" onClick={handleChangePassword}>
+              Save Password
+            </Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };

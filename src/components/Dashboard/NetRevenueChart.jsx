@@ -90,7 +90,7 @@ const NetRevenueChart = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* Year */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Year</label>
+          <label className="text-sm font-medium text-gray-700">Year <label></label></label>
           <select
             value={year}
             onChange={(e) => setYear(+e.target.value)}
@@ -106,7 +106,7 @@ const NetRevenueChart = () => {
 
         {/* Month */}
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Month</label>
+          <label className="text-sm font-medium text-gray-700 mb-1 block">Month <label></label></label>
           <select
             value={month}
             onChange={(e) => setMonth(+e.target.value)}
