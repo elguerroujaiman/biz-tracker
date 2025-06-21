@@ -125,14 +125,14 @@ const Settings = () => {
           </Form.Select>
         </Form.Group>
 
-        <Button variant="primary" onClick={handleSave}>
+        <Button variant="success" onClick={handleSave}>
           Save Settings
         </Button>
       </Form>
 
       <hr />
 
-      <Button variant="secondary" onClick={() => setShowPasswordModal(true)}>
+      <Button variant="primary" onClick={() => setShowPasswordModal(true)}>
         Change Password
       </Button>
 

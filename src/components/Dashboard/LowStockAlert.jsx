@@ -35,7 +35,7 @@ const LowStockAlert = () => {
         <ul className="divide-y divide-gray-100">
           {items.map((p) => (
             <li key={p.product_id} className="py-2 flex justify-between text-sm">
-              <span>{p.name} is low on stock : </span>
+              <span><strong>{p.name} </strong>is low on stock : </span>
               <span className="low-stock"> {p.total_quantity} left</span>
             </li>
           ))}
