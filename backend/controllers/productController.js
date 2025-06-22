@@ -1,0 +1,131 @@
+const db = require("../config/db"); // Reuse the shared DB pool
+
+// GET all products for the logged-in user with optional sorting
+exports.getAllProducts = async (req, res) => {
+  const userId = req.user.id;
+  const allowedSortFields = [
+    "name",
+    "category",
+    "total_quantity",
+    "unit_price",
+    "created_at",
+    "updated_at",
+  ];
+
+  // Get sorting params from query
+  let { sortBy = "name", order = "asc" } = req.query;
+
+  // Validate sort field and direction
+  sortBy = allowedSortFields.includes(sortBy) ? sortBy : "name";
+  order = order.toLowerCase() === "desc" ? "DESC" : "ASC";
+
+  try {
+    const [results] = await db.query(
+      `SELECT * FROM products WHERE user_id = ? ORDER BY ${sortBy} ${order}`,
+      [userId]
+    );
+    res.json(results);
+  } catch (err) {
+    console.error("Error fetching products:", err);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+};
+
+// CREATE a new product for logged-in user
+exports.createProduct = async (req, res) => {
+  const { name, category, unit_price, total_quantity, low_stock_threshold = 0 } = req.body;
+  const userId = req.user?.id;
+
+  if (!name || !unit_price || !total_quantity || !userId) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    // 1. Check if a product with the same name already exists for the user
+    const [existing] = await db.query(
+      "SELECT 1 FROM products WHERE name = ? AND user_id = ? LIMIT 1",
+      [name, userId]
+    );
+
+    if (existing.length > 0) {
+      return res.status(409).json({ error: "A product with this name already exists." });
+    }
+
+    // 2. Proceed to insert if not exists
+    const [result] = await db.query(
+      "INSERT INTO products (name, category, unit_price, total_quantity, low_stock_threshold, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+      [name, category, unit_price, total_quantity, low_stock_threshold, userId]
+    );
+
+    res.status(201).json({ message: "Product created", id: result.insertId });
+  } catch (err) {
+    console.error("Error creating product:", err);
+    res.status(500).json({ error: "Failed to create product" });
+  }
+};
+
+// UPDATE product only if it belongs to the user
+exports.updateProduct = async (req, res) => {
+  const { name, category, unit_price, total_quantity, low_stock_threshold = 0 } = req.body;
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const [result] = await db.query(
+      "UPDATE products SET name = ?, category = ?, unit_price = ?, total_quantity = ?, low_stock_threshold = ? WHERE product_id = ? AND user_id = ?",
+      [name, category, unit_price, total_quantity, low_stock_threshold, id, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(403).json({ error: "Unauthorized update" });
+    }
+
+    res.json({ message: "Product updated" });
+  } catch (err) {
+    console.error("Error updating product:", err);
+    res.status(500).json({ error: "Failed to update product" });
+  }
+};
+
+// DELETE product only if it belongs to the user
+exports.deleteProduct = async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const [result] = await db.query(
+      "DELETE FROM products WHERE product_id = ? AND user_id = ?",
+      [id, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(403).json({ error: "Unauthorized delete" });
+    }
+
+    res.json({ message: "Product deleted" });
+  } catch (err) {
+    console.error("Error deleting product:", err);
+    res.status(500).json({ error: "Failed to delete product" });
+  }
+};
+
+// GET low stock products (based on each product's own threshold)
+exports.getLowStockProducts = async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const [results] = await db.query(
+      `SELECT product_id, name, category, total_quantity, low_stock_threshold 
+       FROM products 
+       WHERE user_id = ? 
+         AND low_stock_threshold IS NOT NULL 
+         AND total_quantity <= low_stock_threshold`,
+      [userId]
+    );
+
+    res.json(results);
+  } catch (err) {
+    console.error("Error fetching low stock products:", err);
+    res.status(500).json({ error: "Failed to fetch low stock products" });
+  }
+};
