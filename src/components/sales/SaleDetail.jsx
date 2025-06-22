@@ -46,7 +46,7 @@ const SaleDetail = ({ sale_id: propSaleId }) => {
             <th>Product</th>
             <th>Category</th>
             <th>Quantity</th>
-            <th>Unit Price</th>
+            <th>Sale Price</th>
             <th>Total</th>
             <th>Earnings</th>
           </tr>

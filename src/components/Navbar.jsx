@@ -27,7 +27,7 @@ const Navbar = () => {
         <NavLink className="nav-link" to="/sales">Sales</NavLink>
         <NavLink className="nav-link" to="/purchases">Purchases</NavLink>
         <NavLink className="nav-link" to="/dashboard">Dashboard</NavLink>
-        <NavLink className="nav-link" to="/settings">Settings</NavLink>`
+        <NavLink className="nav-link" to="/settings">Settings</NavLink>
         </nav>
       </header>
 

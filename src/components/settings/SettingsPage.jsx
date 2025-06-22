@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { useSettings } from "../../contexts/SettingsContext";
 import { VscEye, VscEyeClosed } from "react-icons/vsc";
+import "./Settings.css";
 
 const Settings = () => {
   const [currency, setCurrency] = useState("$");
@@ -110,39 +111,54 @@ const Settings = () => {
 
   return (
     <div className="page-container">
-      <h2 style={{ fontWeight: "bold" }}>Settings</h2>
-      <Form>
-        <Form.Group className="mb-3">
-          <Form.Label>Preferred Currency</Form.Label>
-          <Form.Select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            className="custom-input"
-          >
-            <option value="$">$ - US Dollar</option>
-            <option value="€">€ - Euro</option>
-            <option value="DH">DH - Moroccan Dirham</option>
-          </Form.Select>
-        </Form.Group>
-
-        <Button variant="success" onClick={handleSave}>
-          Save Settings
-        </Button>
-      </Form>
-
-      <hr />
-
-      <Button variant="primary" onClick={() => setShowPasswordModal(true)}>
-        Change Password
-      </Button>
-
-      <br />
-      <br />
-
-      <Button variant="outline-danger" onClick={handleLogout}>
-        Logout
-      </Button>
-
+      <h2 className="mb-4 fw-bold">Settings</h2>
+  
+      {/* Preferences Section */}
+      <div className="card mb-2">
+        <div className="card-header fw-semibold">Preferences</div>
+        <div className="card-body">
+          <Form>
+            <Form.Group className="mb-2">
+              <Form.Label>Preferred Currency</Form.Label>
+              <Form.Select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="custom-input"
+              >
+                <option value="$">$ - US Dollar</option>
+                <option value="€">€ - Euro</option>
+                <option value="DH">DH - Moroccan Dirham</option>
+              </Form.Select>
+            </Form.Group>
+            <Button variant="success" onClick={handleSave}>
+              Save Preferences
+            </Button>
+          </Form>
+        </div>
+      </div>
+  
+      {/* Security Section */}
+      <div className="card mb-2">
+        <div className="card-header fw-semibold">Security</div>
+        <div className="card-body">
+          <p className="mb-3">Manage your account password here.</p>
+          <Button variant="primary" onClick={() => setShowPasswordModal(true)}>
+            Change Password
+          </Button>
+        </div>
+      </div>
+  
+      {/* Account Section */}
+      <div className="card mb-3">
+        <div className="card-header fw-semibold">Account</div>
+        <div className="card-body">
+          <p className="mb-3">Click below to log out of your account.</p>
+          <Button variant="outline-danger" onClick={handleLogout}>
+            Logout
+          </Button>
+        </div>
+      </div>
+  
       {/* Change Password Modal */}
       <Modal
         show={showPasswordModal}
@@ -155,7 +171,6 @@ const Settings = () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            {/* Current Password */}
             <Form.Group className="mb-3">
               <Form.Label>Current Password</Form.Label>
               <div className="input-icon-wrapper">
@@ -169,8 +184,7 @@ const Settings = () => {
                 </span>
               </div>
             </Form.Group>
-
-            {/* New Password */}
+  
             <Form.Group className="mb-3">
               <Form.Label>New Password</Form.Label>
               <div className="input-icon-wrapper">
@@ -184,8 +198,7 @@ const Settings = () => {
                 </span>
               </div>
             </Form.Group>
-
-            {/* Confirm Password */}
+  
             <Form.Group className="mb-3">
               <Form.Label>Confirm New Password</Form.Label>
               <div className="input-icon-wrapper">
@@ -199,7 +212,7 @@ const Settings = () => {
                 </span>
               </div>
             </Form.Group>
-
+  
             <Button variant="primary" onClick={handleChangePassword}>
               Save Password
             </Button>

@@ -48,7 +48,7 @@ const EarningsPerProductChart = () => {
 
   return (
     <div style={{ padding: "1rem", height: "100%" }}>
-      <h2 className="text-lg font-semibold text-red-600 mb-4">Earnings by Product</h2>
+      <h2 className="text-lg font-semibold text-red-600 mb-4">Earnings percentage per Product</h2>
       {chartData ? (
         <div style={{ position: "relative", height: "400px" }}>
           <Pie

@@ -117,7 +117,7 @@ const SaleEditForm = ({ saleId, onClose, onUpdated }) => {
               <tr>
                 <th>Product</th>
                 <th>Quantity</th>
-                <th>Unit Price</th>
+                <th>Sale Price</th>
                 <th>Total</th>
                 <th>Action</th>
               </tr>

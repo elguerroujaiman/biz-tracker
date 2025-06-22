@@ -33,6 +33,11 @@ function Inventory() {
 
       if (Array.isArray(data)) {
         setProducts(data);
+        const normalized = data.map(p => ({
+          ...p,
+          unit_price: Number(p.unit_price),
+        }));
+        setProducts(normalized);
       } else {
         console.error("Unexpected response format:", data);
         toast.error("Unexpected server response.");
@@ -68,7 +73,9 @@ function Inventory() {
           : valB.localeCompare(valA);
       }
 
-      return sortOrder === "asc" ? valA - valB : valB - valA;
+      const numA = Number(valA);
+      const numB = Number(valB);
+      return sortOrder === "asc" ? numA - numB : numB - numA;
     });
 
     setFilteredProducts(filtered);
@@ -176,7 +183,7 @@ function Inventory() {
                 <td>{product.product_id}</td>
                 <td>{product.name}</td>
                 <td>{product.category}</td>
-                <td>{product.unit_price}{currency_symbol}</td>
+                <td>{product.unit_price.toFixed(2)}{currency_symbol}</td>
                 <td className={product.total_quantity <= product.low_stock_threshold ? "low-stock" : ""}>
                   {product.total_quantity}
                 </td>

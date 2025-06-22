@@ -188,7 +188,7 @@ tbody tr {
 #main-content {
   margin-top: 65px;
   padding: 0rem;
-  background-color: #fdf5f5; 
+  background-color: #fff7f7; 
   min-height: calc(100vh - 70px);
   box-sizing: border-box;
 }
@@ -393,14 +393,6 @@ tbody tr:hover {
   color: #10b981;
 }
 
-/* === Page Content === */
-#main-content {
-  margin-top: 65px;
-  padding: 0rem;
-  background-color: #fdf5f5;
-  min-height: calc(100vh - 70px);
-  box-sizing: border-box;
-}
 
 .nav-link:focus,
 .nav-link:active {
@@ -441,13 +433,40 @@ tbody tr:hover {
 /* === Chart Container (pie or bar) === */
 .dashboard-chart-container {
   width: 100%;
-  min-height: 400px; /* Increased space for a larger chart */
+  min-height: 400px; 
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
   box-sizing: border-box;
   position: relative;
+}
+
+/* === Shrink the top Net Revenue chart height === */
+.net-revenue-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.net-revenue-card canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+}
+
+/* Container to constrain chart height */
+.net-revenue-chart-wrapper {
+  height: 550px !important; 
+  display: flex;
+  flex-direction: column;
+}
+
+/* Inner chart canvas container */
+.chart-container {
+  flex: 1;
+  position: relative;
+  height: 380px;
 }
 
 /* === Responsive tweaks === */

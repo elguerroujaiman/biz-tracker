@@ -201,7 +201,7 @@ const SalesPage = () => {
                     Total: <strong>{Number(sale.total_amount).toFixed(2)}{currency_symbol}</strong>
                   </Card.Text>
                   <Card.Text className="mb-1">
-                    <GrMoney /> Earnings: {Number(sale.total_earnings).toFixed(2)}{currency_symbol}
+                    <GrMoney /> Earnings: <strong>{Number(sale.total_earnings).toFixed(2)}{currency_symbol}</strong>
                   </Card.Text>
                   <Card.Text>
                     <em>Note:</em> {sale.note?.trim() || "Empty"}

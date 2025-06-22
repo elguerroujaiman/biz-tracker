@@ -151,7 +151,7 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
             <tr>
               <th>Product</th>
               <th>Quantity</th>
-              <th>Unit Price</th>
+              <th>Purchase Price</th>
               <th>Total</th>
               <th>Action</th>
             </tr>

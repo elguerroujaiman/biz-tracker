@@ -84,12 +84,12 @@ const NetRevenueChart = () => {
   }, [year, month]);
 
   return (
-    <div className="dashboard-widget p-6 mt-6">
+    <div className="dashboard-widget p-4" style={{ flex: 1, height: "100%" }}>
       <h2 className="text-lg font-semibold text-red-600 mb-4">Earnings chart</h2>
       {/* Controls */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        {/* Year */}
         <div>
+          {/* Year */}
           <label className="text-sm font-medium text-gray-700">Year <label></label></label>
           <select
             value={year}
@@ -102,11 +102,8 @@ const NetRevenueChart = () => {
               </option>
             ))}
           </select>
-        </div>
-
-        {/* Month */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-1 block">Month <label></label></label>
+          {/*Month*/}
+          <label className="text-sm font-medium text-gray-700 mb-1 block"><label></label> Month <label></label></label>
           <select
             value={month}
             onChange={(e) => setMonth(+e.target.value)}
@@ -125,16 +122,19 @@ const NetRevenueChart = () => {
       {loading ? (
         <p>Loading chart…</p>
       ) : chartData ? (
-        <Bar
-          data={chartData}
-          options={{
-            responsive: true,
-            plugins: { legend: { position: "top" } },
-            scales: {
-              y: { beginAtZero: true },
-            },
-          }}
-        />
+        <div className="chart-container">
+          <Bar
+            data={chartData}
+            options={{
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: "top" } },
+              scales: {
+                y: { beginAtZero: true },
+              },
+            }}
+          />
+        </div>
       ) : (
         <p className="text-sm text-gray-500">No data for selected month.</p>
       )}

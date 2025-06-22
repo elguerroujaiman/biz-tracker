@@ -51,7 +51,7 @@ const PurchaseDetail = ({ purchaseId: propId }) => {
               <th>Product</th>
               <th>Category</th>
               <th>Quantity</th>
-              <th>Unit&nbsp;Price</th>
+              <th>Purchase&nbsp;Price</th>
               <th>Total</th>
             </tr>
           </thead>

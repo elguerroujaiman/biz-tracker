@@ -11,10 +11,9 @@ const DashboardPage = () => {
       <h2 style={{ fontWeight: "bold", marginBottom: "2rem" }}>Dashboard Overview</h2>
 
       {/* === Top: Net Revenue Chart === */}
-      <div className="dashboard-card mb-4">
+      <div className="dashboard-card net-revenue-chart-wrapper mb-4">
         <NetRevenueChart />
       </div>
-
       {/* === Middle Row: Earnings Chart & Product Overview === */}
       <div className="row">
         <div className="col-md-6 mb-4">
