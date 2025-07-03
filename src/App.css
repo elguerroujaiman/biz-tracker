@@ -480,3 +480,16 @@ tbody tr:hover {
     margin-bottom: 1rem;
   }
 }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  height: 100%;
+  background-color: #fff7f7; /* Matches your hero section background */
+}
+
+body {
+  overflow-x: hidden;
+  overflow-y: auto; /* ✅ allows scroll if needed but no white gap */
+}
