@@ -106,6 +106,7 @@ function ProductForm({ product, onClose }) {
           value={form.name}
           onChange={handleChange}
           className="custom-input"
+          autocomplete="off"
           required
         />
       </Form.Group>
@@ -118,6 +119,7 @@ function ProductForm({ product, onClose }) {
           value={form.category}
           onChange={handleChange}
           className="custom-input"
+          autocomplete="off"
           required
         />
       </Form.Group>
