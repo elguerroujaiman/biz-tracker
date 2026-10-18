@@ -1,9 +1,7 @@
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-// You can move this to a config file if you want
-const JWT_SECRET = process.env.JWT_SECRET; // ⚠️ In production, store this in .env
+const JWT_SECRET = require("../config/jwt");
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -12,14 +10,14 @@ exports.login = async (req, res) => {
     const [users] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
 
     if (users.length === 0) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(401).json({ message: "Invalid email or password." });
     }
 
     const user = users[0];
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid email or password." });
     }
 
     // ✅ Generate JWT token
@@ -66,6 +64,9 @@ exports.register = async (req, res) => {
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
     console.error("Registration error:", err);
+    if (err.code === "SQLITE_CONSTRAINT_UNIQUE") {
+      return res.status(409).json({ message: "An account with this email already exists." });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };

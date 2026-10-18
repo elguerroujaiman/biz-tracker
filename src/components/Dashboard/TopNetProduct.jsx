@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { authFetch } from "../../utils/api";
-import { toast } from "react-hot-toast";
+import { MdEmojiEvents } from "react-icons/md";
+import { useSettings } from "../../contexts/SettingsContext";
 
 const TopNetProduct = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { currency_symbol }   = useSettings();
 
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await authFetch("/analytics/top-net-product?from=2025-06-01&to=2025-06-30");
-        if (!res.ok) throw new Error(res.statusText);
-        const data = await res.json();
-        setProduct(data && data.name ? data : null);
+        const res = await authFetch("/analytics/top-net-product");
+        if (res.ok) {
+          const data = await res.json();
+          setProduct(data && data.name ? data : null);
+        }
       } catch (err) {
-        console.error(err);
-        toast.error("Failed to load top product");
+        console.error("Top product error:", err);
       } finally {
         setLoading(false);
       }
@@ -23,23 +25,68 @@ const TopNetProduct = () => {
     load();
   }, []);
 
-  if (loading) return <p>Loading top earnings product…</p>;
+  if (loading) {
+    return (
+      <div className="panel-card h-100">
+        <div className="panel-card-body py-4 text-center">
+          <div className="skeleton skeleton-title mx-auto mb-2" />
+          <div className="skeleton skeleton-text mx-auto w-50" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="dashboard-widget p-6 mt-6">
-      <h2 className="text-lg font-semibold text-blue-600 mb-4">Top earnings Product</h2>
+    <div className="panel-card h-100">
+      <div className="panel-card-header">
+        <div className="panel-card-title">
+          <MdEmojiEvents className="panel-icon text-accent" />
+          <div>
+            <h3>Top Profit Star</h3>
+            <span className="text-muted text-sm">Product with highest cumulative net profit</span>
+          </div>
+        </div>
+      </div>
 
-      {!product ? (
-        <p className="text-sm text-gray-500">No data available for the selected period.</p>
-      ) : (
-        <ul className="text-sm space-y-1">
-          <li><strong>Name:</strong> {product.name}</li>
-          <li><strong>Units Sold:</strong> {product.unitsSold}</li>
-          <li><strong>Total Revenue:</strong> ${product.totalRevenue}</li>
-          <li><strong>Total Cost:</strong> ${product.totalCost}</li>
-          <li><strong>Net Revenue:</strong> <span className="text-green-600 font-medium">${product.netRevenue}</span></li>
-        </ul>
-      )}
+      <div className="panel-card-body">
+        {!product ? (
+          <p className="text-muted text-center py-4">No sales data available yet.</p>
+        ) : (
+          <div>
+            <div className="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+              <div>
+                <span className="badge badge-accent mb-1">#1 Top Earner</span>
+                <h4 className="font-bold text-primary mb-0">{product.name}</h4>
+              </div>
+              <div className="text-end">
+                <div className="text-xs text-muted">Net Earnings</div>
+                <div className="font-mono font-bold text-success" style={{ fontSize: "1.25rem" }}>
+                  +{currency_symbol || "$"}{Number(product.netRevenue || 0).toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-3 gap-2 text-sm">
+              <div className="p-2 rounded" style={{ background: "var(--bg-elevated)" }}>
+                <span className="text-muted text-xs block">Units Sold</span>
+                <span className="font-semibold text-primary">{product.unitsSold}</span>
+              </div>
+              <div className="p-2 rounded" style={{ background: "var(--bg-elevated)" }}>
+                <span className="text-muted text-xs block">Gross Revenue</span>
+                <span className="font-semibold text-primary">
+                  {currency_symbol || "$"}{Number(product.totalRevenue || 0).toFixed(2)}
+                </span>
+              </div>
+              <div className="p-2 rounded" style={{ background: "var(--bg-elevated)" }}>
+                <span className="text-muted text-xs block">Total Cost</span>
+                <span className="font-semibold text-muted">
+                  {currency_symbol || "$"}{Number(product.totalCost || 0).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

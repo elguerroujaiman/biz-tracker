@@ -1,5 +1,31 @@
 const db = require("../config/db"); // Reuse the shared DB pool
 
+function normalizeProduct(body) {
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const category = typeof body.category === "string" ? body.category.trim() : "";
+  const unit_price = Number(body.unit_price);
+  const cost_price = Number(body.cost_price ?? body.unit_price);
+  const total_quantity = Number(body.total_quantity);
+  const low_stock_threshold = Number(body.low_stock_threshold ?? 0);
+
+  if (!name || name.length > 100) throw new Error("Product name is required and must be 100 characters or fewer.");
+  if (category.length > 60) throw new Error("Category must be 60 characters or fewer.");
+  if (!Number.isFinite(unit_price) || unit_price < 0 || unit_price > 1000000000) {
+    throw new Error("Selling price must be a valid non-negative number.");
+  }
+  if (!Number.isFinite(cost_price) || cost_price < 0 || cost_price > 1000000000) {
+    throw new Error("Cost price must be a valid non-negative number.");
+  }
+  if (!Number.isSafeInteger(total_quantity) || total_quantity < 0) {
+    throw new Error("Quantity must be a non-negative whole number.");
+  }
+  if (!Number.isSafeInteger(low_stock_threshold) || low_stock_threshold < 0) {
+    throw new Error("Low-stock threshold must be a non-negative whole number.");
+  }
+
+  return { name, category: category || null, unit_price, cost_price, total_quantity, low_stock_threshold };
+}
+
 // GET all products for the logged-in user with optional sorting
 exports.getAllProducts = async (req, res) => {
   const userId = req.user.id;
@@ -8,6 +34,7 @@ exports.getAllProducts = async (req, res) => {
     "category",
     "total_quantity",
     "unit_price",
+    "cost_price",
     "created_at",
     "updated_at",
   ];
@@ -33,51 +60,66 @@ exports.getAllProducts = async (req, res) => {
 
 // CREATE a new product for logged-in user
 exports.createProduct = async (req, res) => {
-  const { name, category, unit_price, total_quantity, low_stock_threshold = 0 } = req.body;
   const userId = req.user?.id;
-
-  if (!name || !unit_price || !total_quantity || !userId) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+  let product;
 
   try {
-    // 1. Check if a product with the same name already exists for the user
+    product = normalizeProduct(req.body);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  if (!userId) return res.status(401).json({ error: "Authentication required." });
+
+  try {
     const [existing] = await db.query(
-      "SELECT 1 FROM products WHERE name = ? AND user_id = ? LIMIT 1",
-      [name, userId]
+      "SELECT 1 FROM products WHERE lower(name) = lower(?) AND user_id = ? LIMIT 1",
+      [product.name, userId]
     );
 
     if (existing.length > 0) {
       return res.status(409).json({ error: "A product with this name already exists." });
     }
 
-    // 2. Proceed to insert if not exists
     const [result] = await db.query(
-      "INSERT INTO products (name, category, unit_price, total_quantity, low_stock_threshold, user_id) VALUES (?, ?, ?, ?, ?, ?)",
-      [name, category, unit_price, total_quantity, low_stock_threshold, userId]
+      "INSERT INTO products (name, category, unit_price, cost_price, total_quantity, low_stock_threshold, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [product.name, product.category, product.unit_price, product.cost_price, product.total_quantity, product.low_stock_threshold, userId]
     );
 
     res.status(201).json({ message: "Product created", id: result.insertId });
   } catch (err) {
     console.error("Error creating product:", err);
-    res.status(500).json({ error: "Failed to create product" });
+    res.status(err.code === "SQLITE_CONSTRAINT_UNIQUE" ? 409 : 500).json({
+      error: err.code === "SQLITE_CONSTRAINT_UNIQUE" ? "A product with this name already exists." : "Failed to create product",
+    });
   }
 };
 
 // UPDATE product only if it belongs to the user
 exports.updateProduct = async (req, res) => {
-  const { name, category, unit_price, total_quantity, low_stock_threshold = 0 } = req.body;
   const { id } = req.params;
   const userId = req.user.id;
+  let product;
 
   try {
+    product = normalizeProduct(req.body);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  try {
+    const [existing] = await db.query(
+      "SELECT product_id FROM products WHERE lower(name) = lower(?) AND user_id = ? AND product_id <> ? LIMIT 1",
+      [product.name, userId, id]
+    );
+    if (existing.length > 0) return res.status(409).json({ error: "A product with this name already exists." });
+
     const [result] = await db.query(
-      "UPDATE products SET name = ?, category = ?, unit_price = ?, total_quantity = ?, low_stock_threshold = ? WHERE product_id = ? AND user_id = ?",
-      [name, category, unit_price, total_quantity, low_stock_threshold, id, userId]
+      "UPDATE products SET name = ?, category = ?, unit_price = ?, cost_price = ?, total_quantity = ?, low_stock_threshold = ? WHERE product_id = ? AND user_id = ?",
+      [product.name, product.category, product.unit_price, product.cost_price, product.total_quantity, product.low_stock_threshold, id, userId]
     );
 
     if (result.affectedRows === 0) {
-      return res.status(403).json({ error: "Unauthorized update" });
+      return res.status(404).json({ error: "Product not found." });
     }
 
     res.json({ message: "Product updated" });
@@ -99,12 +141,15 @@ exports.deleteProduct = async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(403).json({ error: "Unauthorized delete" });
+      return res.status(404).json({ error: "Product not found." });
     }
 
     res.json({ message: "Product deleted" });
   } catch (err) {
     console.error("Error deleting product:", err);
+    if (err.code === "SQLITE_CONSTRAINT_FOREIGNKEY") {
+      return res.status(409).json({ error: "This product has sales or purchase history and cannot be deleted." });
+    }
     res.status(500).json({ error: "Failed to delete product" });
   }
 };

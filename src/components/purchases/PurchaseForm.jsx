@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { authFetch } from "../../utils/api";
-import { Form, Button } from "react-bootstrap";
 import { toast } from "react-hot-toast";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useNavigate } from "react-router-dom";
+import { MdAdd, MdDelete, MdArrowBack } from "react-icons/md";
 
 const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
+  const isStandalone          = !onPurchaseCreated;
+  const navigate              = useNavigate();
+  const { currency_symbol }   = useSettings();
+
   const [products, setProducts] = useState([]);
-  const [items, setItems] = useState([
+  const [items, setItems]       = useState([
     {
       product_id: "",
       product_name: "",
@@ -15,39 +20,41 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
       total_price: 0,
     },
   ]);
-  const [note, setNote] = useState("");
+  const [note, setNote]       = useState("");
   const [loading, setLoading] = useState(false);
-  const { currency_symbol, loading: settingsLoading } = useSettings();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await authFetch("/products");
-        const data = await response.json();
-        setProducts(data || []);
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(Array.isArray(data) ? data : []);
+        }
       } catch (error) {
         console.error("Error fetching products:", error);
-        toast.error("Failed to load products");
+        toast.error("Failed to load products list.");
       }
     };
     fetchProducts();
   }, []);
 
   useEffect(() => {
-    if (editPurchase) {
+    if (editPurchase && Array.isArray(editPurchase.items) && products.length > 0) {
       setItems(
         editPurchase.items.map((item) => {
-          const product = products.find(p => p.product_id === item.product_id);
+          const product = products.find((p) => p.product_id === item.product_id);
+          const prc = parseFloat(item.unit_price || item.price || 0);
           return {
             product_id: item.product_id,
             product_name: product?.name || "",
             quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.quantity * item.unit_price,
+            unit_price: prc,
+            total_price: item.quantity * prc,
           };
         })
       );
-      setNote(editPurchase.note || "");
+      setNote(editPurchase.notes || editPurchase.note || "");
     }
   }, [editPurchase, products]);
 
@@ -55,22 +62,33 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
     const updated = [...items];
 
     if (field === "product_id") {
-      const selectedProduct = products.find(p => p.product_id === parseInt(value));
+      const selectedProduct = products.find((p) => p.product_id === parseInt(value, 10));
       if (selectedProduct) {
+        const price = parseFloat(selectedProduct.cost_price ?? selectedProduct.unit_price) || 0;
         updated[index] = {
           product_id: selectedProduct.product_id,
           product_name: selectedProduct.name,
           quantity: 1,
-          unit_price: parseFloat(selectedProduct.unit_price || 0),
-          total_price: parseFloat(selectedProduct.unit_price || 0),
+          unit_price: price,
+          total_price: price,
+        };
+      } else {
+        updated[index] = {
+          product_id: "",
+          product_name: "",
+          quantity: 1,
+          unit_price: 0,
+          total_price: 0,
         };
       }
-    } else {
-      updated[index][field] = field === "quantity" || field === "unit_price"
-        ? parseFloat(value)
-        : value;
-
-      updated[index].total_price = updated[index].quantity * updated[index].unit_price;
+    } else if (field === "quantity") {
+      const qty = parseInt(value, 10) || 0;
+      updated[index].quantity = qty;
+      updated[index].total_price = qty * (updated[index].unit_price || 0);
+    } else if (field === "unit_price") {
+      const prc = parseFloat(value) || 0;
+      updated[index].unit_price = prc;
+      updated[index].total_price = (updated[index].quantity || 0) * prc;
     }
 
     setItems(updated);
@@ -90,141 +108,206 @@ const PurchaseForm = ({ onPurchaseCreated, editPurchase }) => {
   };
 
   const removeItem = (index) => {
+    if (items.length === 1) {
+      toast.error("A purchase order must contain at least one item.");
+      return;
+    }
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmitPurchase = async () => {
-    if (items.length === 0) {
-      toast.error("You must add at least one item to create a purchase.");
+  const grandTotal = items.reduce((sum, item) => sum + (item.total_price || 0), 0);
+
+  const handleSubmitPurchase = async (e) => {
+    e?.preventDefault();
+
+    const validItems = items.filter((item) => item.product_id && item.quantity > 0);
+    if (validItems.length === 0) {
+      toast.error("Please select at least one valid product with quantity > 0.");
       return;
     }
-  
+
     const purchaseData = {
-      notes: note,
-      items: items.map(({ product_id, quantity, unit_price }) => ({
-        product_id: parseInt(product_id),
-        quantity,
-        price: unit_price,
+      notes: note.trim(),
+      items: validItems.map(({ product_id, quantity, unit_price }) => ({
+        product_id: parseInt(product_id, 10),
+        quantity: parseInt(quantity, 10),
+        price: parseFloat(unit_price),
       })),
     };
-  
+
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await authFetch("/purchases", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(purchaseData),
       });
-  
+
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.message || "Purchase creation failed");
+        throw new Error(errData.message || "Purchase order recording failed.");
       }
-  
-      toast.success("Purchase created successfully!");
-      onPurchaseCreated();
-  
-      // Reset form
-      setItems([
-        {
-          product_id: "",
-          product_name: "",
-          quantity: 1,
-          unit_price: 0,
-          total_price: 0,
-        },
-      ]);
-      setNote("");
+
+      toast.success("Purchase recorded & inventory stock increased!");
+
+      if (typeof onPurchaseCreated === "function") {
+        onPurchaseCreated();
+      } else {
+        navigate("/purchases");
+      }
     } catch (err) {
       console.error("Error creating purchase:", err);
-      toast.error(`Could not create purchase: ${err.message}`);
+      toast.error(err.message || "Could not record purchase.");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <>
-      <Form>
+  const formContent = (
+    <form onSubmit={handleSubmitPurchase}>
+      {/* Line Items Table */}
+      <div className="table-responsive mb-4">
         <table className="custom-table">
           <thead>
             <tr>
-              <th>Product</th>
-              <th>Quantity</th>
-              <th>Purchase Price</th>
-              <th>Total</th>
-              <th>Action</th>
+              <th style={{ width: "40%" }}>Product Selection</th>
+              <th style={{ width: "20%" }}>Quantity Procured</th>
+              <th style={{ width: "20%" }}>Unit Cost ({currency_symbol || "$"})</th>
+              <th style={{ width: "20%" }}>Line Total</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {items.map((item, i) => (
               <tr key={i}>
                 <td>
-                  <Form.Select
+                  <select
+                    className="form-control form-control-sm"
                     value={item.product_id}
                     onChange={(e) => handleItemChange(i, "product_id", e.target.value)}
-                    className="custom-input"
                     required
                   >
-                    <option value="">Select Product</option>
+                    <option value="">-- Choose a Product --</option>
                     {products.map((p) => (
                       <option key={p.product_id} value={p.product_id}>
-                        {p.name}
+                        {p.name} (Current Stock: {p.total_quantity})
                       </option>
                     ))}
-                  </Form.Select>
+                  </select>
                 </td>
                 <td>
-                  <Form.Control
+                  <input
                     type="number"
+                    min="1"
+                    className="form-control form-control-sm text-center"
                     value={item.quantity}
                     onChange={(e) => handleItemChange(i, "quantity", e.target.value)}
-                    min={1}
-                    className="custom-input"
                     required
                   />
                 </td>
                 <td>
-                  <div>
-                    {item.unit_price.toFixed(2)}{currency_symbol}
-                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="form-control form-control-sm"
+                    value={item.unit_price}
+                    onChange={(e) => handleItemChange(i, "unit_price", e.target.value)}
+                    required
+                  />
                 </td>
-                <td>{(item.total_price || 0).toFixed(2)}{currency_symbol}</td>
-                <td>
-                  <Button
-                    variant="danger"
-                    size="sm"
+                <td className="font-mono font-semibold">
+                  {currency_symbol || "$"}{Number(item.total_price || 0).toFixed(2)}
+                </td>
+                <td className="text-end">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm text-danger"
                     onClick={() => removeItem(i)}
+                    title="Remove item"
                   >
-                    Remove
-                  </Button>
+                    <MdDelete size={16} />
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
 
-        <Button variant="success" size="sm" onClick={handleAddItem}>
-          + Add Item
-        </Button>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={handleAddItem}
+        >
+          <MdAdd size={16} /> Add Another Line Item
+        </button>
 
-        <Form.Group className="mb-3 mt-3">
-          <Form.Label>Note</Form.Label>
-          <Form.Control
-            type="text"
-            placeholder="Optional note"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="custom-input"
-          />
-        </Form.Group>
+        <div className="text-end">
+          <span className="text-muted text-sm mr-2">Total Procurement Spend: </span>
+          <span className="font-mono font-bold text-accent" style={{ fontSize: "1.375rem" }}>
+            {currency_symbol || "$"}{grandTotal.toFixed(2)}
+          </span>
+        </div>
+      </div>
 
-        <Button variant="primary" onClick={handleSubmitPurchase} disabled={loading}>
-          {loading ? "Submitting..." : editPurchase ? "Update Purchase" : "Add Purchase"}
-        </Button>
-      </Form>
-    </>
+      {/* Supplier Note */}
+      <div className="form-group mb-4">
+        <label className="form-label">Supplier / Order Note (Optional)</label>
+        <textarea
+          rows={2}
+          className="form-control"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </div>
+
+      <div className="modal-footer px-0 pb-0">
+        {isStandalone ? (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => navigate("/purchases")}
+            disabled={loading}
+          >
+            Cancel
+          </button>
+        ) : null}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading || grandTotal <= 0}
+        >
+          {loading ? <span className="auth-spinner" /> : "Record Purchase & Update Stock"}
+        </button>
+      </div>
+    </form>
   );
+
+  if (isStandalone) {
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <div>
+            <button
+              className="btn btn-secondary btn-sm mb-2"
+              onClick={() => navigate("/purchases")}
+            >
+              <MdArrowBack /> Back to Purchases
+            </button>
+            <h1 className="page-title">Record New Purchase Order</h1>
+            <p className="page-subtitle">Restock inventory and record procurement expenditures.</p>
+          </div>
+        </div>
+
+        <div className="panel-card">
+          <div className="panel-card-body">{formContent}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return formContent;
 };
 
 export default PurchaseForm;

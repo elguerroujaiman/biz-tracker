@@ -1,33 +1,49 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { authFetch } from "../../utils/api";
-import {Modal,Button,Card,Form,Container,Row,Col,Dropdown,Collapse} from "react-bootstrap";
+import { Modal } from "react-bootstrap";
 import SaleForm from "./SaleForm";
 import SaleDetail from "./SaleDetail";
-import SaleEditForm from "./SaleEditForm";
-import { GrMoney } from "react-icons/gr";
+import { toast } from "react-hot-toast";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useNavigate } from "react-router-dom";
+import {
+  MdAdd,
+  MdSearch,
+  MdInsights,
+  MdDelete,
+  MdVisibility,
+  MdArrowUpward,
+  MdArrowDownward,
+  MdPointOfSale,
+  MdClose,
+} from "react-icons/md";
 
 const SalesPage = () => {
-  const [sales, setSales] = useState([]);
-  const [expandedSaleId, setExpandedSaleId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [filterText, setFilterText] = useState("");
-  const [filteredSales, setFilteredSales] = useState([]);
-  const [sortBy, setSortBy] = useState("Sale ID");
-  const [sortAsc, setSortAsc] = useState(false);
-  const [editingSaleId, setEditingSaleId] = useState(null);
-  const [detailsRefreshKey, setDetailsRefreshKey] = useState(0);
+  const [sales, setSales]               = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [filterText, setFilterText]     = useState("");
+  const [sortBy, setSortBy]             = useState("date");
+  const [sortAsc, setSortAsc]           = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [detailSaleId, setDetailSaleId] = useState(null);
-  const { currency_symbol, loading: settingsLoading } = useSettings();
+
+  const { currency_symbol } = useSettings();
+  const navigate            = useNavigate();
 
   const fetchSales = useCallback(async () => {
     try {
+      setLoading(true);
       const response = await authFetch("/sales");
-      let data = await response.json();
-      if (!Array.isArray(data)) data = [data];
-      setSales(data);
+      if (response.ok) {
+        let data = await response.json();
+        if (!Array.isArray(data)) data = data ? [data] : [];
+        setSales(data);
+      }
     } catch (error) {
       console.error("Error fetching sales:", error);
+      toast.error("Failed to load sales list.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -35,219 +51,268 @@ const SalesPage = () => {
     fetchSales();
   }, [fetchSales]);
 
-  // Filter & sort sales
-  useEffect(() => {
-    let updated = [...sales];
+  const filteredSales = useMemo(() => {
+    let list = [...sales];
 
-    if (filterText) {
-      updated = updated.filter(s =>
-        s.note?.toLowerCase().startsWith(filterText.toLowerCase()) ||
-        s.sale_id.toString().startsWith(filterText)
+    if (filterText.trim()) {
+      const q = filterText.toLowerCase();
+      list = list.filter(
+        (s) =>
+          String(s.sale_id).includes(q) ||
+          s.note?.toLowerCase().includes(q)
       );
     }
 
-    updated.sort((a, b) => {
-      const getValue = (sale) => {
-        if (sortBy === "Sale ID") return sale.sale_id;
-        if (sortBy === "Total Amount") return Number(sale.total_amount);
-        if (sortBy === "Total Earnings") return Number(sale.total_earnings);
-        return new Date(sale.sale_date);
-      };
+    list.sort((a, b) => {
+      let valA, valB;
+      if (sortBy === "id") {
+        valA = Number(a.sale_id);
+        valB = Number(b.sale_id);
+      } else if (sortBy === "amount") {
+        valA = Number(a.total_amount) || 0;
+        valB = Number(b.total_amount) || 0;
+      } else if (sortBy === "earnings") {
+        valA = Number(a.total_earnings) || 0;
+        valB = Number(b.total_earnings) || 0;
+      } else {
+        valA = new Date(a.sale_date).getTime();
+        valB = new Date(b.sale_date).getTime();
+      }
 
-      const aValue = getValue(a);
-      const bValue = getValue(b);
-
-      if (aValue < bValue) return sortAsc ? -1 : 1;
-      if (aValue > bValue) return sortAsc ? 1 : -1;
-      return 0;
+      return sortAsc ? valA - valB : valB - valA;
     });
 
-    setFilteredSales(updated);
+    return list;
   }, [sales, filterText, sortBy, sortAsc]);
 
-  const handleSaleCreated = () => {
-    fetchSales();
-    setShowForm(false);
-  };
-
-  const toggleExpanded = (saleId) => {
-    setExpandedSaleId(prev => (prev === saleId ? null : saleId));
-  };
-
-  const handleSortChange = (criterion) => {
+  const toggleSort = (criterion) => {
     if (sortBy === criterion) {
-      // If already sorting by this, toggle the direction
-      setSortAsc(prev => !prev);
+      setSortAsc(!sortAsc);
     } else {
-      // When selecting a new column, start in descending order
       setSortBy(criterion);
       setSortAsc(false);
     }
   };
 
-  const getArrow = (criterion) =>
-    sortBy === criterion ? (sortAsc ? "↓" : "↑") : "";
+  const handleDeleteSale = async (saleId) => {
+    if (!window.confirm(`Are you sure you want to delete Sale #${saleId}?`)) return;
+
+    try {
+      const res = await authFetch(`/sales/${saleId}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success(`Sale #${saleId} deleted.`);
+        fetchSales();
+      } else {
+        const err = await res.json();
+        toast.error(err.message || "Failed to delete sale.");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error("Could not delete sale.");
+    }
+  };
 
   return (
-    <Container className="page-container">
-      <Row className="align-items-center mb-4">
-        <Col>
-          <h2 style={{ fontWeight: "bold" }}>Sales</h2>
-        </Col>
-        <Col className="text-end">
-          <Button variant="primary" onClick={() => setShowForm(true)}>
-            + Add Sale
-          </Button>
-        </Col>
-      </Row>
+    <div className="page-container">
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Sales History & Invoicing</h1>
+          <p className="page-subtitle">
+            Browse transactions, print receipts, and monitor gross & net revenue.
+          </p>
+        </div>
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-secondary"
+            onClick={() => navigate("/sales/stats")}
+          >
+            <MdInsights size={18} /> Sales Stats
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowAddModal(true)}
+          >
+            <MdAdd size={20} /> New Sale
+          </button>
+        </div>
+      </div>
 
-      {/* Search + Sort */}
-      <Row className="mb-4 gx-2 align-items-center">
-        <Col xs="auto" style={{ flexGrow: 1 }}>
-          <Form.Control
-            type="text"
-            placeholder="Search by Sale ID or Note"
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-            className="custom-input"
-          />
-        </Col>
-        <Col xs="auto">
-          <Dropdown onSelect={handleSortChange}>
-            <Dropdown.Toggle variant="outline-primary" id="dropdown-sort">
-              Sort By: {sortBy} {getArrow(sortBy)}
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item eventKey="Sale ID">
-                Sale ID {getArrow("Sale ID")}
-              </Dropdown.Item>
-              <Dropdown.Item eventKey="Total Amount">
-                Total Amount {getArrow("Total Amount")}
-              </Dropdown.Item>
-              <Dropdown.Item eventKey="Total Earnings">
-                Total Earnings {getArrow("Total Earnings")}
-              </Dropdown.Item>
-              <Dropdown.Item eventKey="Created At">
-                Created At {getArrow("Created At")}
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-        </Col>
-      </Row>
+      {/* Filter and Sort Toolbar */}
+      <div className="panel-card mb-4">
+        <div className="panel-card-body">
+          <div className="inventory-controls-row">
+            <div className="input-wrapper has-icon-left flex-grow-1">
+              <span className="input-icon input-icon-left">
+                <MdSearch size={18} />
+              </span>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search sales by Invoice ID or customer note..."
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+              />
+              {filterText && (
+                <span
+                  className="input-icon input-icon-right clickable-icon"
+                  onClick={() => setFilterText("")}
+                >
+                  <MdClose />
+                </span>
+              )}
+            </div>
 
-      {/* Add Sale Modal */}
-      <Modal show={showForm} onHide={() => setShowForm(false)} size="lg" contentClassName="custom-modal">
+            <div className="sort-controls">
+              <span className="text-muted text-sm">Sort:</span>
+              <select
+                className="form-control form-control-sm"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="date">Transaction Date</option>
+                <option value="id">Sale ID</option>
+                <option value="amount">Total Amount</option>
+                <option value="earnings">Net Earnings</option>
+              </select>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setSortAsc(!sortAsc)}
+                title={sortAsc ? "Ascending order" : "Descending order"}
+              >
+                {sortAsc ? <MdArrowUpward /> : <MdArrowDownward />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sales Table */}
+      <div className="panel-card">
+        <div className="table-responsive">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th onClick={() => toggleSort("id")} style={{ cursor: "pointer" }}>
+                  Invoice {sortBy === "id" && (sortAsc ? "↑" : "↓")}
+                </th>
+                <th onClick={() => toggleSort("date")} style={{ cursor: "pointer" }}>
+                  Date & Time {sortBy === "date" && (sortAsc ? "↑" : "↓")}
+                </th>
+                <th>Memo / Note</th>
+                <th onClick={() => toggleSort("amount")} style={{ cursor: "pointer" }}>
+                  Total {sortBy === "amount" && (sortAsc ? "↑" : "↓")}
+                </th>
+                <th onClick={() => toggleSort("earnings")} style={{ cursor: "pointer" }}>
+                  Net Margin {sortBy === "earnings" && (sortAsc ? "↑" : "↓")}
+                </th>
+                <th className="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-5">
+                    <div className="skeleton skeleton-title mx-auto mb-2" />
+                    <div className="skeleton skeleton-text mx-auto w-50" />
+                  </td>
+                </tr>
+              ) : filteredSales.length > 0 ? (
+                filteredSales.map((sale) => (
+                  <tr key={sale.sale_id}>
+                    <td className="font-mono font-bold text-primary">#{sale.sale_id}</td>
+                    <td className="text-muted text-sm">
+                      {new Date(sale.sale_date).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="text-secondary text-sm">
+                      {sale.note ? `"${sale.note}"` : <span className="text-muted">—</span>}
+                    </td>
+                    <td className="font-mono font-semibold text-primary">
+                      {currency_symbol || "$"}{Number(sale.total_amount || 0).toFixed(2)}
+                    </td>
+                    <td>
+                      <span className="badge badge-success font-mono">
+                        +{currency_symbol || "$"}{Number(sale.total_earnings || 0).toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="text-end">
+                      <div className="btn-group">
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setDetailSaleId(sale.sale_id)}
+                          title="View Receipt"
+                        >
+                          <MdVisibility size={14} /> Receipt
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDeleteSale(sale.sale_id)}
+                          title="Delete Sale"
+                        >
+                          <MdDelete size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="text-center py-5">
+                    <MdPointOfSale size={40} className="empty-state-icon" />
+                    <p className="empty-state-text mt-2">
+                      {filterText ? "No sales match your search filter." : "No sales recorded yet."}
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* New Sale Modal */}
+      <Modal
+        show={showAddModal}
+        onHide={() => setShowAddModal(false)}
+        size="lg"
+        centered
+        contentClassName="custom-modal-dark"
+      >
         <Modal.Header closeButton>
-          <Modal.Title>New Sale</Modal.Title>
+          <Modal.Title>Issue New Sale</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <SaleForm onSaleCreated={handleSaleCreated} />
+          <SaleForm
+            onSaleCreated={() => {
+              setShowAddModal(false);
+              fetchSales();
+            }}
+          />
         </Modal.Body>
       </Modal>
 
-      {/* Sales List */}
-      {filteredSales.length === 0 ? (
-        <div className="text-center text-muted mt-5">No sales found</div>
-      ) : (
-        <Row xs={1} md={2} lg={3} className="g-4">
-          {filteredSales.map((sale) => (
-            <Col key={sale.sale_id}>
-              <Card className="themed-card h-100">
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <Card.Title className="mb-0">
-                      <strong>Sale ID: {sale.sale_id}</strong>
-                    </Card.Title>
-                    <div className="d-flex gap-1">
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingSaleId(sale.sale_id);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          if (window.confirm("Are you sure you want to delete this sale?")) {
-                            try {
-                              const res = await authFetch(`/sales/${sale.sale_id}`, { method: "DELETE" });
-                              if (res.ok) {
-                                fetchSales();
-                              } else {
-                                alert("Failed to delete sale");
-                              }
-                            } catch (err) {
-                              console.error("Delete error:", err);
-                              alert("Something went wrong deleting the sale.");
-                            }
-                          }
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Card.Subtitle className="mb-1 text-muted">
-                    {new Date(sale.sale_date).toLocaleDateString("en-GB")}
-                  </Card.Subtitle>
-                  <Card.Text className="mb-1">
-                    Total: <strong>{Number(sale.total_amount).toFixed(2)}{currency_symbol}</strong>
-                  </Card.Text>
-                  <Card.Text className="mb-1">
-                    <GrMoney /> Earnings: <strong>{Number(sale.total_earnings).toFixed(2)}{currency_symbol}</strong>
-                  </Card.Text>
-                  <Card.Text>
-                    <em>Note:</em> {sale.note?.trim() || "Empty"}
-                  </Card.Text>
-
-                  <div className="text-end mt-3">
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => setDetailSaleId(sale.sale_id)}
-                    >
-                      View Details
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
-      {editingSaleId && (
-        <SaleEditForm
-          saleId={editingSaleId}
-          onClose={() => setEditingSaleId(null)}
-          onUpdated={() => {
-            setEditingSaleId(null);
-            fetchSales();
-            setDetailsRefreshKey(prev => prev + 1);
-          }}
-        />
-      )}
+      {/* Sale Details Modal */}
       <Modal
         show={!!detailSaleId}
         onHide={() => setDetailSaleId(null)}
         size="lg"
         centered
-        contentClassName="custom-modal"
+        contentClassName="custom-modal-dark"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Sale Details</Modal.Title>
+          <Modal.Title>Sale Receipt #{detailSaleId}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <SaleDetail sale_id={detailSaleId} />
+          {detailSaleId && <SaleDetail sale_id={detailSaleId} />}
         </Modal.Body>
       </Modal>
-    </Container>
+    </div>
   );
 };
 

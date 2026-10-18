@@ -1,70 +1,125 @@
-# Getting Started with Create React App
+# BizTracker
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+BizTracker is a small-business management app for tracking products, inventory, sales, supplier purchases, and business performance. It brings day-to-day operations and useful sales and profit analytics together in one dashboard.
 
-## Available Scripts
+## Background
 
-In the project directory, you can run:
+I originally built this project as my **PFE (Projet de Fin d'Études)** for the **Licence en Sciences Mathématiques et Informatique** at the **Faculty of Sciences of Tetouan**. After the original academic project, I returned to it and reworked it into the current version, updating the interface and application structure and adding a SQLite-backed API, security improvements, and a Docker setup.
 
-### `npm start`
+## What it includes
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **Product and inventory management:** organize products by category, track selling and purchase costs, search and filter the catalog, and set low-stock thresholds.
+- **Sales:** record sales with multiple products, keep transaction history, and review or edit sale details.
+- **Purchases:** record supplier purchases and restocking, with purchase history and transaction details.
+- **Dashboard and analytics:** review revenue and purchase totals, stock alerts, sales and margin trends, product performance, and recent activity.
+- **Accounts and preferences:** create an account, sign in, manage account settings, and choose a currency symbol.
+- **Sample data:** explore the interface with the included SQLite dataset or generate sample records with the seed command.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Technology
 
-### `npm test`
+- **Frontend:** React 19, Vite, React Router, Chart.js, and React Bootstrap, with responsive custom styling.
+- **Backend:** Node.js 22, Express 5, SQLite with `better-sqlite3`, password hashing with bcrypt, and JWT-based authentication.
+- **Containers:** Docker Compose, a multi-stage frontend build served by Nginx, and a separate API container.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Run with Docker Compose
 
-### `npm run build`
+Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or Docker Engine with the Compose plugin). From the project root, run:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+docker compose up --build -d
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Open the app at [http://localhost:3001](http://localhost:3001). The API health endpoint is [http://localhost:3001/api/health](http://localhost:3001/api/health).
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Compose stores its SQLite database in the named `db-data` volume. A new volume starts with an empty database. To load the sample account and sample business data, run:
 
-### `npm run eject`
+```bash
+docker compose exec backend npm run seed
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The sample sign-in is `demo@businesstracker.com` with password `Demo1234!`. These credentials are for the local sample dataset only; do not use them for a live business or public deployment. You can also register your own account in the app.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Stop the containers while keeping the database:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+docker compose down
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Remove the containers **and the database volume** (this deletes the data):
 
-## Learn More
+```bash
+docker compose down -v
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+To intentionally replace the current database contents with the sample dataset, run `docker compose exec backend npm run seed:reset`. This deletes all accounts and transactions in that database.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Run locally without Docker
 
-### Code Splitting
+Install **Node.js 22** and npm. In PowerShell, from the repository root, create local environment files from the examples:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```powershell
+Copy-Item .env.example .env
+Copy-Item backend/.env.example backend/.env
+```
 
-### Analyzing the Bundle Size
+Start the backend in one terminal:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```powershell
+cd backend
+npm ci
+npm start
+```
 
-### Making a Progressive Web App
+Start the frontend in a second terminal from the project root:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```powershell
+npm ci
+npm start
+```
 
-### Advanced Configuration
+The frontend is at [http://localhost:3001](http://localhost:3001), and the API listens at `http://localhost:5000`. The frontend's local API URL is configured in `.env.example`; the backend's options are in `backend/.env.example`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+The default local SQLite path is `backend/db/database.sqlite`. If you use a new, empty database instead, seed it from the backend directory with `npm run seed`. The seed command refuses to overwrite existing users. To deliberately reset that database to the sample dataset, use `npm run seed:reset` from the backend directory; it deletes all existing data in the selected database.
 
-### Deployment
+## Project layout
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```text
+src/                  React pages, components, styles, and API client
+backend/              Express API, database schema, migrations, seed data, and tests
+docker-compose.yml    Local multi-container setup
+Dockerfile            Frontend build and Nginx image
+backend/Dockerfile    Backend image
+nginx.conf            Frontend server and API reverse proxy configuration
+```
 
-### `npm run build` fails to minify
+## Checks
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Run the frontend tests from the repository root:
+
+```bash
+npm test
+```
+
+Run the backend workflow tests:
+
+```bash
+cd backend
+npm test
+```
+
+Build the frontend for production:
+
+```bash
+npm run build
+```
+
+## Data and security notes
+
+- Account data is scoped to the signed-in user. Passwords are hashed, authentication uses expiring JWTs, and sale and purchase stock updates run in database transactions.
+- SQLite files are stored under `backend/db` locally and in the `db-data` Docker volume when using Compose. Keep backups of any business data you need.
+- `.env` files are ignored by Git; commit the `.env.example` templates only. Before hosting the app publicly, set `NODE_ENV=production`, provide a unique `JWT_SECRET` of at least 32 characters, use HTTPS, and configure the deployment for your domain. Never expose a local development secret or the sample account as a live credential.
+- See [backend/README.md](backend/README.md) for API routes, database details, environment options, and more backend notes.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).

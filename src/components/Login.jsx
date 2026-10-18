@@ -1,136 +1,150 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import loginImage from "./LoginPageStyle/login-image.png";
-import "./LoginPageStyle/Login.css";
+import { MdEmail, MdLock, MdBarChart } from "react-icons/md";
 import { VscEye, VscEyeClosed } from "react-icons/vsc";
+import { authFetch } from "../utils/api";
+import { useSettings } from "../contexts/SettingsContext";
+import "./LoginPageStyle/Login.css";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail]       = useState("");
+  const [password, setPassword] = useState("");
+  const [showPwd, setShowPwd]   = useState(false);
+  const [error, setError]       = useState("");
+  const [loading, setLoading]   = useState(false);
+  const navigate                = useNavigate();
+  const { refreshSettings }     = useSettings();
 
+  // Pre-fill remembered email only (NOT password — security fix)
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberEmail");
-    const savedPassword = localStorage.getItem("rememberPassword");
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (savedEmail) setEmail(savedEmail);
 
-    if (savedEmail && savedPassword) {
-      setEmail(savedEmail);
-      setPassword(savedPassword);
-      setRememberMe(true);
-    }
+    // Redirect if already logged in
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+    if (token) navigate("/home");
   }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await authFetch("/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.token) {
-        const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem("token", data.token);
-        storage.setItem("userDetails", JSON.stringify(data.user));
+        // Store token — never store password in localStorage
+        sessionStorage.setItem("token", data.token);
+        sessionStorage.setItem("userDetails", JSON.stringify(data.user));
+        await refreshSettings();
 
-        if (rememberMe) {
-          localStorage.setItem("rememberEmail", email);
-          localStorage.setItem("rememberPassword", password);
-        } else {
-          localStorage.removeItem("rememberEmail");
-          localStorage.removeItem("rememberPassword");
-        }
+        // Optionally remember email (not password) for UX convenience
+        localStorage.setItem("rememberEmail", email);
 
         navigate("/home");
       } else {
-        setError(data.message || "Login failed.");
+        setError(data.message || "Login failed. Please check your credentials.");
       }
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong. Please try again.");
+    } catch {
+      setError("Unable to reach the server. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="login-page-container">
-      {/* Left Side (Form) */}
-      <div className="login-left">
-        <form onSubmit={handleSubmit} className="form-card">
-          <h3>Login</h3>
-          {error && <div className="text-danger mt-2">{error}</div>}
-
-          <input
-            type="email"
-            className="form-control mt-3 custom-input"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-
-          <div className="input-icon-wrapper mt-3">
-            <input
-              type={showPassword ? "text" : "password"}
-              className="form-control custom-input"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            {showPassword ? (
-              <VscEyeClosed
-                className="input-icon"
-                onClick={() => setShowPassword(false)}
-              />
-            ) : (
-              <VscEye
-                className="input-icon"
-                onClick={() => setShowPassword(true)}
-              />
-            )}
-          </div>
-          
-          <div className="form-check mt-3 mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="rememberMe"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            <label className="form-check-label" htmlFor="rememberMe">
-              Remember Me
-            </label>
-          </div>
-
-          <button type="submit" className="btn btn-success w-100 mb-3">
-            Login
-          </button>
-
-          <div className="text-center">
-            New user? <Link to="/signup">Signup</Link>
-          </div>
-        </form>
+    <div className="auth-page">
+      {/* Animated gradient background */}
+      <div className="auth-bg" aria-hidden="true">
+        <div className="auth-bg-blob auth-bg-blob-1" />
+        <div className="auth-bg-blob auth-bg-blob-2" />
+        <div className="auth-bg-blob auth-bg-blob-3" />
       </div>
 
-      {/* Right Side (Hero-style image and shape background) */}
-      <div className="login-right">
-        <div className="image-shape-bg"></div>
-        <img
-          src={loginImage}
-          alt="Login Visual"
-          className="login-image"
-        />
+      <div className="auth-card">
+        {/* Brand */}
+        <div className="auth-brand">
+          <div className="auth-brand-icon">
+            <MdBarChart size={22} />
+          </div>
+          <span className="auth-brand-name">BizTracker</span>
+        </div>
+
+        <h1 className="auth-title">Welcome back</h1>
+        <p className="auth-subtitle">Sign in to your business dashboard</p>
+
+        {error && (
+          <div className="alert alert-danger" role="alert">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="auth-form" noValidate>
+          {/* Email */}
+          <div className="form-group">
+            <label htmlFor="login-email" className="form-label">Email address</label>
+            <div className="input-wrapper has-icon-left">
+              <span className="input-icon input-icon-left">
+                <MdEmail />
+              </span>
+              <input
+                id="login-email"
+                type="email"
+                className="form-control"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div className="form-group">
+            <label htmlFor="login-password" className="form-label">Password</label>
+            <div className="input-wrapper has-icon-left has-icon-right">
+              <span className="input-icon input-icon-left">
+                <MdLock />
+              </span>
+              <input
+                id="login-password"
+                type={showPwd ? "text" : "password"}
+                className="form-control"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                className="input-icon input-icon-right clickable-icon"
+                onClick={() => setShowPwd(!showPwd)}
+                aria-label={showPwd ? "Hide password" : "Show password"}
+              >
+                {showPwd ? <VscEyeClosed /> : <VscEye />}
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="btn btn-primary btn-lg auth-submit"
+            disabled={loading}
+          >
+            {loading ? <span className="auth-spinner" /> : "Sign in"}
+          </button>
+        </form>
+
+        <p className="auth-footer-text">
+          Don't have an account?{" "}
+          <Link to="/signup">Create one</Link>
+        </p>
       </div>
     </div>
   );

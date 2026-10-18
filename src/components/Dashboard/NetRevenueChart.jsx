@@ -10,7 +10,9 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { format, addDays, parseISO } from "date-fns";
+import { format } from "date-fns";
+import { useSettings } from "../../contexts/SettingsContext";
+import { MdTrendingUp, MdCalendarToday } from "react-icons/md";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -19,62 +21,84 @@ const CUR_YEAR = now.getFullYear();
 const CUR_MONTH = now.getMonth() + 1;
 
 const NetRevenueChart = () => {
-  const [year, setYear] = useState(CUR_YEAR);
-  const [month, setMonth] = useState(CUR_MONTH);
+  const [year, setYear]           = useState(CUR_YEAR);
+  const [month, setMonth]         = useState(CUR_MONTH);
   const [chartData, setChartData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [totalMonthRev, setTotal] = useState(0);
+  const [loading, setLoading]     = useState(false);
 
-  const yearOptions = Array.from({ length: 6 }, (_, i) => CUR_YEAR - i);
-  const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
+  const { currency_symbol } = useSettings();
+
+  const yearOptions  = Array.from({ length: 6 }, (_, i) => CUR_YEAR - i);
+  const monthOptions = [
+    { num: 1, name: "January" },
+    { num: 2, name: "February" },
+    { num: 3, name: "March" },
+    { num: 4, name: "April" },
+    { num: 5, name: "May" },
+    { num: 6, name: "June" },
+    { num: 7, name: "July" },
+    { num: 8, name: "August" },
+    { num: 9, name: "September" },
+    { num: 10, name: "October" },
+    { num: 11, name: "November" },
+    { num: 12, name: "December" },
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-
       try {
         const res = await authFetch(`/analytics/net-revenue?year=${year}&month=${month}`);
         if (!res.ok) throw new Error(res.statusText);
         const rows = await res.json();
 
         const revenueMap = {};
+        let sum = 0;
 
-        // Log and build revenue map
         rows.forEach((r) => {
-          const shiftedDate = addDays(parseISO(r.day), 0);
-          const shiftedKey = format(shiftedDate, "yyyy-MM-dd");
-          revenueMap[shiftedKey] = parseFloat(r.netRevenue);
+          if (r.day) {
+            const key = r.day.substring(0, 10);
+            const val = parseFloat(r.netRevenue) || 0;
+            revenueMap[key] = val;
+            sum += val;
+          }
         });
+
+        setTotal(sum);
 
         const daysInSelectedMonth = new Date(year, month, 0).getDate();
         const labels = [];
-        const data = [];
+        const data   = [];
 
         for (let day = 1; day <= daysInSelectedMonth; day++) {
           const dayStr = String(day).padStart(2, "0");
           const monthStr = String(month).padStart(2, "0");
           const dateKey = `${year}-${monthStr}-${dayStr}`;
-          const labelDate = new Date(year, month - 1, day); // Local date
+          const labelDate = new Date(year, month - 1, day);
           labels.push(format(labelDate, "d MMM"));
-          const revenue = revenueMap[dateKey] || 0;
-          data.push(revenue);
+          data.push(revenueMap[dateKey] || 0);
         }
 
         setChartData({
           labels,
           datasets: [
             {
-              label: "Earnings",
+              label: "Net Earnings",
               data,
-              backgroundColor: "#10b981",
-              borderRadius: 4,
-              barPercentage: 0.7,
+              backgroundColor: "rgba(124, 111, 224, 0.8)",
+              hoverBackgroundColor: "#a89ef0",
+              borderColor: "#7c6fe0",
+              borderWidth: 1,
+              borderRadius: 5,
+              barPercentage: 0.65,
               categoryPercentage: 0.8,
             },
           ],
         });
       } catch (err) {
-        console.error(err);
-        toast.error("Failed to load net-revenue data");
+        console.error("Net revenue chart error:", err);
+        toast.error("Failed to load net revenue data.");
       } finally {
         setLoading(false);
       }
@@ -83,61 +107,113 @@ const NetRevenueChart = () => {
     fetchData();
   }, [year, month]);
 
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: "#1c2133",
+        titleColor: "#f1f5f9",
+        bodyColor: "#94a3b8",
+        borderColor: "rgba(255,255,255,0.1)",
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        callbacks: {
+          label: (ctx) => ` Earnings: ${currency_symbol || "$"}${Number(ctx.raw).toFixed(2)}`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: "#94a3b8", font: { size: 10 } },
+        grid: { color: "rgba(255,255,255,0.04)" },
+      },
+      y: {
+        ticks: {
+          color: "#94a3b8",
+          font: { size: 10 },
+          callback: (val) => `${currency_symbol || "$"}${val}`,
+        },
+        grid: { color: "rgba(255,255,255,0.06)" },
+        beginAtZero: true,
+      },
+    },
+  };
+
   return (
-    <div className="dashboard-widget p-4" style={{ flex: 1, height: "100%" }}>
-      <h2 className="text-lg font-semibold text-red-600 mb-4">Earnings chart</h2>
-      {/* Controls */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        <div>
-          {/* Year */}
-          <label className="text-sm font-medium text-gray-700">Year <label></label></label>
+    <div className="panel-card">
+      <div className="panel-card-header flex-wrap gap-2">
+        <div className="panel-card-title">
+          <MdTrendingUp className="panel-icon text-accent" />
+          <div>
+            <h3>Net Revenue Performance</h3>
+            <span className="text-muted text-sm">
+              Daily earnings calculated as (Sale Price - Purchase Cost)
+            </span>
+          </div>
+        </div>
+
+        {/* Date Filters */}
+        <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-1">
+            <MdCalendarToday className="text-muted" size={16} />
+            <select
+              value={month}
+              onChange={(e) => setMonth(+e.target.value)}
+              className="form-control form-control-sm"
+              style={{ width: "130px" }}
+            >
+              {monthOptions.map((m) => (
+                <option key={m.num} value={m.num}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <select
             value={year}
             onChange={(e) => setYear(+e.target.value)}
-            className="w-full border rounded px-2 py-1 text-sm"
+            className="form-control form-control-sm"
+            style={{ width: "90px" }}
           >
             {yearOptions.map((y) => (
               <option key={y} value={y}>
-                {y === CUR_YEAR ? `${y} (Current)` : y}
-              </option>
-            ))}
-          </select>
-          {/*Month*/}
-          <label className="text-sm font-medium text-gray-700 mb-1 block"><label></label> Month <label></label></label>
-          <select
-            value={month}
-            onChange={(e) => setMonth(+e.target.value)}
-            className="w-full border rounded px-2 py-1 text-sm"
-          >
-            {monthOptions.map((m) => (
-              <option key={m} value={m}>
-                {m === CUR_MONTH && year === CUR_YEAR ? `${m} (Current)` : m}
+                {y}
               </option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Chart */}
-      {loading ? (
-        <p>Loading chart…</p>
-      ) : chartData ? (
-        <div className="chart-container">
-          <Bar
-            data={chartData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { position: "top" } },
-              scales: {
-                y: { beginAtZero: true },
-              },
-            }}
-          />
+      <div className="panel-card-body">
+        {/* Month Summary Bar */}
+        <div className="d-flex justify-content-between align-items-center mb-3 p-3 rounded" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+          <span className="text-secondary text-sm">
+            Total Net Earnings in {monthOptions.find((m) => m.num === month)?.name} {year}:
+          </span>
+          <span className="font-mono font-bold text-accent" style={{ fontSize: "1.25rem" }}>
+            {currency_symbol || "$"}{totalMonthRev.toFixed(2)}
+          </span>
         </div>
-      ) : (
-        <p className="text-sm text-gray-500">No data for selected month.</p>
-      )}
+
+        {loading ? (
+          <div className="py-5 text-center">
+            <div className="skeleton skeleton-title mx-auto mb-2" />
+            <div className="skeleton skeleton-card mx-auto" />
+          </div>
+        ) : chartData ? (
+          <div style={{ height: "320px", position: "relative" }}>
+            <Bar data={chartData} options={chartOptions} />
+          </div>
+        ) : (
+          <p className="text-muted text-center py-5">No financial data found for this period.</p>
+        )}
+      </div>
     </div>
   );
 };

@@ -1,14 +1,15 @@
 const jwt = require("jsonwebtoken");
+const JWT_SECRET = require("../config/jwt");
 
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  const token = authHeader && authHeader.split(" ")[1]; // "Bearer <token>"
+  const [scheme, token] = (authHeader || "").split(" ");
 
-  if (!token) return res.status(401).json({ message: "Access denied. No token provided." });
+  if (scheme !== "Bearer" || !token) return res.status(401).json({ message: "Authentication required." });
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid token." });
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(401).json({ message: "Session expired. Please sign in again." });
     req.user = user; // user contains { id, email } from login
     next();
   });

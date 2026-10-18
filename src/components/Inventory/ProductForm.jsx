@@ -1,32 +1,34 @@
 import React, { useEffect, useState } from "react";
-import { Form, Button, Spinner } from "react-bootstrap";
 import { authFetch } from "../../utils/api";
 import { toast } from "react-hot-toast";
+import { useSettings } from "../../contexts/SettingsContext";
 
 function ProductForm({ product, onClose }) {
   const [form, setForm] = useState({
     name: "",
     category: "",
     unit_price: "",
+    cost_price: "",
     total_quantity: "",
-    low_stock_threshold: ""
+    low_stock_threshold: "",
   });
-  const [loading, setLoading] = useState(false);
-
+  const [loading, setLoading]       = useState(false);
   const [initialForm, setInitialForm] = useState(null);
+  const { currency_symbol }         = useSettings();
 
   useEffect(() => {
     if (product) {
       const productData = {
-        name: product.name,
-        category: product.category,
-        unit_price: product.unit_price,
-        total_quantity: product.total_quantity,
-        low_stock_threshold: product.low_stock_threshold ?? ""  // Fallback if null
+        name: product.name || "",
+        category: product.category || "",
+        unit_price: product.unit_price ?? "",
+        cost_price: product.cost_price ?? product.unit_price ?? "",
+        total_quantity: product.total_quantity ?? "",
+        low_stock_threshold: product.low_stock_threshold ?? 5,
       };
 
       setForm(productData);
-      setInitialForm(productData); // Save original values
+      setInitialForm(productData);
     }
   }, [product]);
 
@@ -39,137 +41,206 @@ function ProductForm({ product, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     const price = parseFloat(form.unit_price);
-    const quantity = parseFloat(form.total_quantity);
-  
-    if (price < 0 || quantity < 0) {
-      toast.error("Price and total quantity must not be negative.");
+    const costPrice = parseFloat(form.cost_price);
+    const quantity = parseInt(form.total_quantity, 10);
+    const threshold = parseInt(form.low_stock_threshold, 10);
+
+    if (isNaN(price) || price < 0) {
+      toast.error("Selling price must be a valid non-negative number.");
       return;
     }
-  
+
+    if (isNaN(costPrice) || costPrice < 0) {
+      toast.error("Cost price must be a valid non-negative number.");
+      return;
+    }
+
+    if (isNaN(quantity) || quantity < 0) {
+      toast.error("Total quantity must be a non-negative integer.");
+      return;
+    }
+
+    if (isNaN(threshold) || threshold < 0) {
+      toast.error("Low stock threshold must be a non-negative integer.");
+      return;
+    }
+
     if (product && initialForm) {
       const noChanges = Object.keys(initialForm).every(
         (key) => String(form[key]) === String(initialForm[key])
       );
-  
+
       if (noChanges) {
-        toast.error("No changes detected.");
+        toast.error("No changes were made to the product.");
         return;
       }
     }
-  
+
     setLoading(true);
     try {
       const method = product ? "PUT" : "POST";
       const url = product ? `/products/${product.product_id}` : "/products";
-  
+
       const res = await authFetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.name.trim(),
+          category: form.category.trim(),
+          unit_price: price,
+          cost_price: costPrice,
+          total_quantity: quantity,
+          low_stock_threshold: threshold,
+        }),
       });
-  
+
       if (res.ok) {
-        onClose(true);
+        onClose(true, Boolean(product));
       } else {
         const errorData = await res.json();
-  
-        // ✅ Specific error for duplicate product name
         if (res.status === 409) {
-          toast.error("A product with this name already exists.");
+          toast.error("A product with this name already exists in your catalog.");
         } else {
-          toast.error(errorData.message || "Failed to save product.");
+          toast.error(errorData.error || errorData.message || "Failed to save product.");
         }
-  
-        console.error("Save error:", errorData);
       }
     } catch (error) {
       console.error("Save error:", error);
-      toast.error("Failed to save product.");
+      toast.error("Failed to save product. Please check your connection.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    onClose(false); // <--- Just close without refreshing or showing success toast
-  };
-
   return (
-    <Form onSubmit={handleSubmit}>
-      <Form.Group className="mb-3" controlId="name">
-        <Form.Label>Name</Form.Label>
-        <Form.Control
+    <form onSubmit={handleSubmit} className="product-form-container">
+      <div className="form-group mb-3">
+        <label htmlFor="prod-name" className="form-label">
+          Product Name <span className="text-danger">*</span>
+        </label>
+        <input
+          id="prod-name"
           type="text"
           name="name"
+          className="form-control"
           value={form.name}
           onChange={handleChange}
-          className="custom-input"
-          autocomplete="off"
+          autoComplete="off"
           required
         />
-      </Form.Group>
+      </div>
 
-      <Form.Group className="mb-3" controlId="category">
-        <Form.Label>Category</Form.Label>
-        <Form.Control
+      <div className="form-group mb-3">
+        <label htmlFor="prod-category" className="form-label">
+          Category <span className="text-danger">*</span>
+        </label>
+        <input
+          id="prod-category"
           type="text"
           name="category"
+          className="form-control"
           value={form.category}
           onChange={handleChange}
-          className="custom-input"
-          autocomplete="off"
+          autoComplete="off"
           required
         />
-      </Form.Group>
-
-      <Form.Group className="mb-3" controlId="unit_price">
-        <Form.Label>Unit Price</Form.Label>
-        <Form.Control
-          type="number"
-          name="unit_price"
-          value={form.unit_price}
-          onChange={handleChange}
-          className="custom-input"
-          step="0.01"
-          required
-        />
-      </Form.Group>
-
-      <Form.Group className="mb-3" controlId="total_quantity">
-        <Form.Label>Total Quantity</Form.Label>
-        <Form.Control
-          type="number"
-          name="total_quantity"
-          value={form.total_quantity}
-          onChange={handleChange}
-          className="custom-input"
-          required
-        />
-      </Form.Group>
-
-      <Form.Group className="mb-3" controlId="low_stock_threshold">
-        <Form.Label>Low Stock Threshold</Form.Label>
-        <Form.Control
-          type="number"
-          name="low_stock_threshold"
-          value={form.low_stock_threshold}
-          onChange={handleChange}
-          className="custom-input"
-          required
-        />
-      </Form.Group>
-
-      <div className="d-flex justify-content-end">
-        <Button variant="secondary" onClick={handleCancel} className="me-2" disabled={loading}>
-          Cancel
-        </Button>
-        <Button type="submit" variant="primary" disabled={loading}>
-          {loading ? <Spinner animation="border" size="sm" /> : product ? "Update" : "Create"}
-        </Button>
       </div>
-    </Form>
+
+      <div className="grid grid-3 gap-3 mb-4">
+        <div className="form-group">
+          <label htmlFor="prod-price" className="form-label">
+            Selling Price ({currency_symbol || "$"}) <span className="text-danger">*</span>
+          </label>
+          <input
+            id="prod-price"
+            type="number"
+            name="unit_price"
+            className="form-control"
+            value={form.unit_price}
+            onChange={handleChange}
+            step="0.01"
+            min="0"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="prod-cost-price" className="form-label">
+            Cost Price ({currency_symbol || "$"}) <span className="text-danger">*</span>
+          </label>
+          <input
+            id="prod-cost-price"
+            type="number"
+            name="cost_price"
+            className="form-control"
+            value={form.cost_price}
+            onChange={handleChange}
+            step="0.01"
+            min="0"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="prod-quantity" className="form-label">
+            Initial Quantity <span className="text-danger">*</span>
+          </label>
+          <input
+            id="prod-quantity"
+            type="number"
+            name="total_quantity"
+            className="form-control"
+            value={form.total_quantity}
+            onChange={handleChange}
+            min="0"
+            step="1"
+            required
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="prod-threshold" className="form-label">
+            Alert Threshold <span className="text-danger">*</span>
+          </label>
+          <input
+            id="prod-threshold"
+            type="number"
+            name="low_stock_threshold"
+            className="form-control"
+            value={form.low_stock_threshold}
+            onChange={handleChange}
+            min="0"
+            step="1"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="modal-footer px-0 pb-0">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => onClose(false)}
+          disabled={loading}
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={loading}
+        >
+          {loading ? (
+            <span className="auth-spinner" />
+          ) : product ? (
+            "Save Changes"
+          ) : (
+            "Create Product"
+          )}
+        </button>
+      </div>
+    </form>
   );
 }
 

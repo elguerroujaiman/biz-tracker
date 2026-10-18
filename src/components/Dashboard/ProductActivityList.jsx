@@ -1,67 +1,111 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { authFetch } from "../../utils/api";
+import { MdHistory } from "react-icons/md";
 
 const ProductActivityList = () => {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts]   = useState([]);
   const [sortOrder, setSortOrder] = useState("active");
-  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+  const [loading, setLoading]     = useState(true);
 
   useEffect(() => {
     const fetchActivity = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:5000/api/analytics/product-activity?sort=${sortOrder}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setProducts(response.data);
+        setLoading(true);
+        const response = await authFetch(`/analytics/product-activity?sort=${sortOrder}`);
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(Array.isArray(data) ? data : []);
+        }
       } catch (error) {
         console.error("Failed to load product activity:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchActivity();
-  }, [sortOrder, token]);
+  }, [sortOrder]);
 
   return (
-    <div className="dashboard-widget">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2 className="text-lg font-semibold text-red-600 mb-4">Products Activity</h2>
-        <select
-          className="form-select w-auto"
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value)}
-        >
-          <option value="active">Most Active</option>
-          <option value="inactive">Most Inactive</option>
-        </select>
+    <div className="panel-card h-100">
+      <div className="panel-card-header flex-wrap gap-2">
+        <div className="panel-card-title">
+          <MdHistory className="panel-icon text-accent" />
+          <div>
+            <h3>Product Turnover Activity</h3>
+            <span className="text-muted text-sm">Velocity and recent sales frequency</span>
+          </div>
+        </div>
+
+        <div className="d-flex align-items-center gap-2">
+          <span className="text-muted text-sm">Filter:</span>
+          <select
+            className="form-control form-control-sm"
+            style={{ width: "140px" }}
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+          >
+            <option value="active">Most Active</option>
+            <option value="inactive">Least Active</option>
+          </select>
+        </div>
       </div>
 
-      <table className="custom-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Last Sold</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.length ? (
-            products.map((p) => (
-              <tr key={p.product_id}>
-                <td>{p.name}</td>
-                <td>{p.lastSold ? new Date(p.lastSold).toLocaleString("en-GB") : "Never Sold"}</td>
+      <div className="panel-card-body p-0">
+        <div className="table-responsive">
+          <table className="custom-table mb-0">
+            <thead>
+              <tr>
+                <th>Product Name</th>
+                <th>Last Transaction Date</th>
+                <th>Velocity Status</th>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="2" className="text-center">No product activity found.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="3" className="text-center py-4">
+                    <div className="skeleton skeleton-text mx-auto w-75" />
+                  </td>
+                </tr>
+              ) : products.length > 0 ? (
+                products.map((p) => {
+                  const hasSold = !!p.lastSold;
+                  return (
+                    <tr key={p.product_id}>
+                      <td className="font-semibold">{p.name}</td>
+                      <td className="text-muted text-sm">
+                        {hasSold
+                          ? new Date(p.lastSold).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "Never Sold"}
+                      </td>
+                      <td>
+                        {hasSold ? (
+                          <span className="badge badge-success">Active Seller</span>
+                        ) : (
+                          <span className="badge badge-warning">Stagnant Stock</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="3" className="text-center py-4 text-muted">
+                    No product turnover records found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

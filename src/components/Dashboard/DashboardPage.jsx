@@ -1,44 +1,41 @@
 import React from "react";
-import LowStockAlert from "./LowStockAlert";
 import NetRevenueChart from "./NetRevenueChart";
+import TopNetProduct from "./TopNetProduct";
 import EarningsPerProductChart from "./EarningsPerProductChart";
-import ProductActivityList from "./ProductActivityList";
 import ProductEarningsOverview from "./ProductEarningsOverview";
+import LowStockAlert from "./LowStockAlert";
+import ProductActivityList from "./ProductActivityList";
 
 const DashboardPage = () => {
   return (
     <div className="page-container">
-      <h2 style={{ fontWeight: "bold", marginBottom: "2rem" }}>Dashboard Overview</h2>
+      {/* Page Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Analytics & Intelligence</h1>
+          <p className="page-subtitle">
+            Real-time profitability tracking, margin analysis, and inventory velocity.
+          </p>
+        </div>
+      </div>
 
-      {/* === Top: Net Revenue Chart === */}
-      <div className="dashboard-card net-revenue-chart-wrapper mb-4">
+      {/* Row 1: Net Revenue Over Time */}
+      <div className="mb-4">
         <NetRevenueChart />
       </div>
-      {/* === Middle Row: Earnings Chart & Product Overview === */}
-      <div className="row">
-        <div className="col-md-6 mb-4">
-          <div className="dashboard-card dashboard-chart-container">
-            <EarningsPerProductChart />
-          </div>
-        </div>
-        <div className="col-md-6 mb-4">
-          <div className="dashboard-card">
-            <ProductEarningsOverview />
-          </div>
-        </div>
+
+      {/* Row 2: Top Profit Star & Profit Share Doughnut */}
+      <div className="grid grid-2 gap-4 mb-4">
+        <TopNetProduct />
+        <EarningsPerProductChart />
       </div>
 
-      {/* === Bottom Row: Activity List (2/3) & Low Stock (1/3) === */}
-      <div className="row">
-        <div className="col-md-8 mb-4">
-          <div className="dashboard-card">
-            <ProductActivityList />
-          </div>
-        </div>
-        <div className="col-md-4 mb-4">
-          <div className="dashboard-card">
-            <LowStockAlert />
-          </div>
+      {/* Row 3: Product Profit Breakdown & Low Stock Watchlist */}
+      <div className="grid grid-2 gap-4 mb-4">
+        <ProductEarningsOverview />
+        <div className="d-flex flex-column gap-4">
+          <LowStockAlert />
+          <ProductActivityList />
         </div>
       </div>
     </div>

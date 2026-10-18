@@ -1,50 +1,36 @@
+"use strict";
+
 const db = require("../config/db");
 
 /* ------------------------------------------------------------------ *
- * Helpers                                                            *
- * ------------------------------------------------------------------ */
-const TZ_NAME   = "Africa/Casablanca";
-const TZ_OFFSET = "+01:00";      // fallback when zone tables absent
-
-/** Convert a timestamp column from UTC to Morocco local time. */
-function toLocal(col) {
-  return `IFNULL(
-            CONVERT_TZ(${col}, '+00:00', '${TZ_NAME}'),
-            CONVERT_TZ(${col}, '+00:00', '${TZ_OFFSET}')
-          )`;
-}
-
-/* ------------------------------------------------------------------ *
- *  GET /api/analytics/net-revenue?year=YYYY&month=MM                 *
+ * GET /api/analytics/net-revenue?year=YYYY&month=MM                  *
  * ------------------------------------------------------------------ */
 exports.getNetRevenue = async (req, res) => {
   const userId = req.user.id;
-  const year   = parseInt(req.query.year, 10);
+  const year   = parseInt(req.query.year,  10);
   const month  = parseInt(req.query.month, 10);
 
   if (!year || !month || month < 1 || month > 12) {
     return res.status(400).json({ message: "year and month are required (1-12)" });
   }
 
-  const localDate = `DATE(s.sale_date)`; // NO timezone conversion
-
+  // SQLite: strftime('%Y', date) returns string, strftime('%m', date) returns 0-padded string
   const sql = `
-    SELECT ${localDate}                          AS day,
-           SUM(si.quantity * (si.unit_price
-                             - p.unit_price))    AS netRevenue
-    FROM   sales        s
-    JOIN   sale_items   si  ON si.sale_id   = s.sale_id
-    JOIN   products     p   ON p.product_id = si.product_id
+    SELECT date(s.sale_date)                                   AS day,
+           SUM(si.quantity * (si.unit_price - si.cost_price))   AS netRevenue
+    FROM   sales      s
+    JOIN   sale_items si ON si.sale_id   = s.sale_id
+    JOIN   products   p  ON p.product_id = si.product_id
     WHERE  s.user_id = ?
-      AND  YEAR(${localDate})  = ?
-      AND  MONTH(${localDate}) = ?
+      AND  strftime('%Y', s.sale_date) = ?
+      AND  CAST(strftime('%m', s.sale_date) AS INTEGER) = ?
     GROUP  BY day
     ORDER  BY day;
   `;
 
   try {
-    const [rows] = await db.query(sql, [userId, year, month]);
-    res.json(rows);  // e.g. [{ day:"2025-06-08", netRevenue: 99.5 }]
+    const [rows] = await db.query(sql, [userId, String(year), month]);
+    res.json(rows);
   } catch (err) {
     console.error("getNetRevenue error:", err);
     res.status(500).json({ message: "Error fetching net revenue" });
@@ -52,29 +38,26 @@ exports.getNetRevenue = async (req, res) => {
 };
 
 /* ------------------------------------------------------------------ *
- *  GET /api/analytics/top-net-product  (unchanged)                    *
+ * GET /api/analytics/top-net-product                                  *
  * ------------------------------------------------------------------ */
 exports.getTopNetProduct = async (req, res) => {
-
   const userId = req.user.id;
   const from   = req.query.from || "1970-01-01";
   const to     = req.query.to   || "2100-01-01";
 
-  const localDate = `DATE(${toLocal("s.sale_date")})`;
-
   const sql = `
     SELECT  p.product_id,
             p.name,
-            SUM(si.quantity)                     AS unitsSold,
-            SUM(si.total_price)                  AS totalRevenue,
-            SUM(si.quantity * p.unit_price)      AS totalCost,
+            SUM(si.quantity)                          AS unitsSold,
+            SUM(si.total_price)                       AS totalRevenue,
+            SUM(si.quantity * si.cost_price)           AS totalCost,
             SUM(si.total_price) -
-            SUM(si.quantity * p.unit_price)      AS netRevenue
+            SUM(si.quantity * si.cost_price)           AS netRevenue
     FROM   sale_items si
     JOIN   sales      s  ON si.sale_id   = s.sale_id
     JOIN   products   p  ON si.product_id = p.product_id
     WHERE  s.user_id = ?
-      AND  ${localDate} BETWEEN ? AND ?
+      AND  date(s.sale_date) BETWEEN ? AND ?
     GROUP  BY p.product_id
     ORDER  BY netRevenue DESC
     LIMIT 1;
@@ -90,17 +73,17 @@ exports.getTopNetProduct = async (req, res) => {
 };
 
 /* ------------------------------------------------------------------ *
- *  GET /api/analytics/earnings-per-product                           *
+ * GET /api/analytics/earnings-per-product                            *
  * ------------------------------------------------------------------ */
 exports.getEarningsPerProduct = async (req, res) => {
   const userId = req.user.id;
 
   const sql = `
-    SELECT 
+    SELECT
       p.name,
-      SUM((si.unit_price - p.unit_price) * si.quantity) AS earnings
+      SUM((si.unit_price - si.cost_price) * si.quantity) AS earnings
     FROM sale_items si
-    JOIN sales s ON si.sale_id = s.sale_id
+    JOIN sales    s ON si.sale_id   = s.sale_id
     JOIN products p ON si.product_id = p.product_id
     WHERE s.user_id = ?
     GROUP BY p.product_id
@@ -112,10 +95,13 @@ exports.getEarningsPerProduct = async (req, res) => {
 
     const totalEarnings = rows.reduce((sum, row) => sum + (row.earnings || 0), 0);
 
-    const formatted = rows.map(row => ({
+    const formatted = rows.map((row) => ({
       name: row.name,
       earnings: row.earnings,
-      percentage: totalEarnings > 0 ? parseFloat(((row.earnings / totalEarnings) * 100).toFixed(2)) : 0
+      percentage:
+        totalEarnings > 0
+          ? parseFloat(((row.earnings / totalEarnings) * 100).toFixed(2))
+          : 0,
     }));
 
     res.json(formatted);
@@ -126,20 +112,20 @@ exports.getEarningsPerProduct = async (req, res) => {
 };
 
 /* ------------------------------------------------------------------ *
- *  GET /api/analytics/product-activity?sort=active|inactive          *
+ * GET /api/analytics/product-activity?sort=active|inactive           *
  * ------------------------------------------------------------------ */
 exports.getProductActivity = async (req, res) => {
   const userId = req.user.id;
-  const sort = req.query.sort === "active" ? "DESC" : "ASC";
+  const sort   = req.query.sort === "active" ? "DESC" : "ASC";
 
   const sql = `
-    SELECT 
+    SELECT
       p.product_id,
       p.name,
       MAX(s.sale_date) AS lastSold
     FROM products p
     LEFT JOIN sale_items si ON si.product_id = p.product_id
-    LEFT JOIN sales s ON s.sale_id = si.sale_id
+    LEFT JOIN sales      s  ON s.sale_id      = si.sale_id
     WHERE p.user_id = ?
     GROUP BY p.product_id
     ORDER BY lastSold ${sort};
@@ -154,40 +140,35 @@ exports.getProductActivity = async (req, res) => {
   }
 };
 
-/**
- * GET /api/analytics/product-revenue
- * Query params:
- *   - productId (required)
- *   - year (required)
- *   - month (required 1–12)
- */
+/* ------------------------------------------------------------------ *
+ * GET /api/analytics/product-revenue?productId=&year=&month=         *
+ * ------------------------------------------------------------------ */
 exports.getProductRevenue = async (req, res) => {
   const userId    = req.user.id;
   const productId = parseInt(req.query.productId, 10);
-  const year      = parseInt(req.query.year, 10);
-  const month     = parseInt(req.query.month, 10);
+  const year      = parseInt(req.query.year,      10);
+  const month     = parseInt(req.query.month,     10);
 
   if (!productId || !year || !month || month < 1 || month > 12) {
     return res.status(400).json({ message: "productId, year, and month are required" });
   }
 
-  // Aggregate daily net earnings: (sale_items.unit_price − products.unit_price) × quantity
   const sql = `
-    SELECT DATE(s.sale_date) AS day,
-           SUM((si.unit_price - p.unit_price) * si.quantity) AS netRevenue
+    SELECT date(s.sale_date)                                       AS day,
+           SUM((si.unit_price - si.cost_price) * si.quantity)       AS netRevenue
     FROM sale_items si
-    JOIN sales s ON si.sale_id = s.sale_id
+    JOIN sales    s ON si.sale_id   = s.sale_id
     JOIN products p ON si.product_id = p.product_id
-    WHERE s.user_id = ?
+    WHERE s.user_id  = ?
       AND si.product_id = ?
-      AND YEAR(s.sale_date) = ?
-      AND MONTH(s.sale_date) = ?
+      AND strftime('%Y', s.sale_date) = ?
+      AND CAST(strftime('%m', s.sale_date) AS INTEGER) = ?
     GROUP BY day
     ORDER BY day;
   `;
 
   try {
-    const [rows] = await db.query(sql, [userId, productId, year, month]);
+    const [rows] = await db.query(sql, [userId, productId, String(year), month]);
     res.json(rows);
   } catch (err) {
     console.error("getProductRevenue error:", err);

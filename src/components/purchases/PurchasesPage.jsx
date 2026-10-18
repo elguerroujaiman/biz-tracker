@@ -1,33 +1,48 @@
-import React, { useEffect, useState, useCallback } from "react";
-import {
-  Container, Row, Col, Button, Form, Modal, Dropdown, Card
-} from "react-bootstrap";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { authFetch } from "../../utils/api";
+import { Modal } from "react-bootstrap";
 import PurchaseForm from "./PurchaseForm";
-import PurchaseEditForm from "./PurchaseEditForm";
 import PurchaseDetail from "./PurchaseDetail";
+import { toast } from "react-hot-toast";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useNavigate } from "react-router-dom";
+import {
+  MdAdd,
+  MdSearch,
+  MdInsights,
+  MdDelete,
+  MdVisibility,
+  MdArrowUpward,
+  MdArrowDownward,
+  MdShoppingCart,
+  MdClose,
+} from "react-icons/md";
 
 const PurchasesPage = () => {
-  const [purchases, setPurchases] = useState([]);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingPurchase, setEditingPurchase] = useState(null);
-  const [isEditLoading, setIsEditLoading] = useState(false);
-  const [filterText, setFilterText] = useState("");
-  const [filteredPurchases, setFilteredPurchases] = useState([]);
-  const [sortBy, setSortBy] = useState("Purchase ID");
-  const [sortAsc, setSortAsc] = useState(false);
-  const [detailPurchaseId, setDetailPurchaseId] = useState(null);
-  const { currency_symbol, loading: settingsLoading } = useSettings();
+  const [purchases, setPurchases]             = useState([]);
+  const [loading, setLoading]                 = useState(true);
+  const [filterText, setFilterText]           = useState("");
+  const [sortBy, setSortBy]                   = useState("date");
+  const [sortAsc, setSortAsc]                 = useState(false);
+  const [showAddModal, setShowAddModal]       = useState(false);
+  const [detailPurchaseId, setDetailPurchId]  = useState(null);
+
+  const { currency_symbol } = useSettings();
+  const navigate            = useNavigate();
 
   const fetchPurchases = useCallback(async () => {
     try {
+      setLoading(true);
       const response = await authFetch("/purchases");
-      const data = await response.json();
-      setPurchases(Array.isArray(data) ? data : data.purchases || []);
+      if (response.ok) {
+        let data = await response.json();
+        setPurchases(Array.isArray(data) ? data : data.purchases || []);
+      }
     } catch (err) {
       console.error("Failed to fetch purchases", err);
+      toast.error("Failed to load purchases list.");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -35,251 +50,260 @@ const PurchasesPage = () => {
     fetchPurchases();
   }, [fetchPurchases]);
 
-  useEffect(() => {
-    let updated = [...purchases];
+  const filteredPurchases = useMemo(() => {
+    let list = [...purchases];
 
-    if (filterText) {
-      updated = updated.filter(p =>
-        p.notes?.toLowerCase().includes(filterText.toLowerCase()) ||
-        p.purchase_id.toString().startsWith(filterText)
+    if (filterText.trim()) {
+      const q = filterText.toLowerCase();
+      list = list.filter(
+        (p) =>
+          String(p.purchase_id).includes(q) ||
+          p.notes?.toLowerCase().includes(q)
       );
     }
 
-    updated.sort((a, b) => {
-      const getValue = (purchase) => {
-        if (sortBy === "Purchase ID") return purchase.purchase_id;
-        if (sortBy === "Total Amount") return Number(purchase.total_amount);
-        if (sortBy === "Created At") return new Date(purchase.purchase_date);
-        return 0;
-      };
+    list.sort((a, b) => {
+      let valA, valB;
+      if (sortBy === "id") {
+        valA = Number(a.purchase_id);
+        valB = Number(b.purchase_id);
+      } else if (sortBy === "amount") {
+        valA = Number(a.total_amount) || 0;
+        valB = Number(b.total_amount) || 0;
+      } else {
+        valA = new Date(a.purchase_date).getTime();
+        valB = new Date(b.purchase_date).getTime();
+      }
 
-      const aValue = getValue(a);
-      const bValue = getValue(b);
-
-      if (aValue < bValue) return sortAsc ? -1 : 1;
-      if (aValue > bValue) return sortAsc ? 1 : -1;
-      return 0;
+      return sortAsc ? valA - valB : valB - valA;
     });
 
-    setFilteredPurchases(updated);
+    return list;
   }, [purchases, filterText, sortBy, sortAsc]);
 
-  const handlePurchaseCreated = () => {
-    fetchPurchases();
-    setShowAddModal(false);
-  };
-
-  const handlePurchaseUpdated = () => {
-    fetchPurchases();
-    setEditingPurchase(null);
-    setShowEditModal(false);
-  };
-
-  const handleEdit = async (purchase) => {
-    try {
-      setIsEditLoading(true);
-      setShowEditModal(true);
-      const res = await authFetch(`/purchases/${purchase.purchase_id}`);
-      const fullPurchase = await res.json();
-      setEditingPurchase(fullPurchase);
-    } catch (err) {
-      console.error("Failed to load purchase for editing", err);
-    } finally {
-      setIsEditLoading(false);
-    }
-  };
-
-  const handleDelete = async (purchase_id, e) => {
-    e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this purchase?")) return;
-
-    try {
-      const res = await authFetch(`/purchases/${purchase_id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        fetchPurchases();
-      } else {
-        alert("Failed to delete purchase");
-      }
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("Something went wrong deleting the purchase.");
-    }
-  };
-
-  const handleSortChange = (criterion) => {
+  const toggleSort = (criterion) => {
     if (sortBy === criterion) {
-      setSortAsc(prev => !prev);
+      setSortAsc(!sortAsc);
     } else {
       setSortBy(criterion);
       setSortAsc(false);
     }
   };
 
-  const getArrow = (criterion) =>
-    sortBy === criterion ? (sortAsc ? "↓" : "↑") : "";
+  const handleDelete = async (purchaseId) => {
+    if (!window.confirm(`Are you sure you want to delete Purchase #${purchaseId}?`)) return;
+
+    try {
+      const res = await authFetch(`/purchases/${purchaseId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        toast.success(`Purchase #${purchaseId} deleted.`);
+        fetchPurchases();
+      } else {
+        const err = await res.json();
+        toast.error(err.message || "Failed to delete purchase order.");
+      }
+    } catch (err) {
+      console.error("Delete purchase error:", err);
+      toast.error("Could not delete purchase order.");
+    }
+  };
 
   return (
-    <Container className="page-container">
+    <div className="page-container">
       {/* Header */}
-      <Row className="align-items-center mb-4">
-        <Col>
-          <h2 style={{ fontWeight: "bold" }}>Purchases</h2>
-        </Col>
-        <Col className="text-end">
-          <Button variant="primary" onClick={() => setShowAddModal(true)}>
-            + Add Purchase
-          </Button>
-        </Col>
-      </Row>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Purchases & Expenses</h1>
+          <p className="page-subtitle">
+            Log vendor restocking orders, track physical acquisitions, and monitor expenditures.
+          </p>
+        </div>
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-secondary"
+            onClick={() => navigate("/purchases/stats")}
+          >
+            <MdInsights size={18} /> Purchase Stats
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowAddModal(true)}
+          >
+            <MdAdd size={20} /> Record Purchase
+          </button>
+        </div>
+      </div>
 
-      {/* Filter + Sort */}
-      <Row className="mb-4 gx-2 align-items-center">
-        <Col xs="auto" style={{ flexGrow: 1 }}>
-          <Form.Control
-            type="text"
-            placeholder="Search by Purchase ID or Notes"
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-            className="custom-input"
-          />
-        </Col>
-        <Col xs="auto">
-          <Dropdown onSelect={handleSortChange}>
-            <Dropdown.Toggle variant="outline-primary">
-              Sort By: {sortBy} {getArrow(sortBy)}
-            </Dropdown.Toggle>
-            <Dropdown.Menu>
-              <Dropdown.Item eventKey="Purchase ID">
-                Purchase ID {getArrow("Purchase ID")}
-              </Dropdown.Item>
-              <Dropdown.Item eventKey="Total Amount">
-                Total Amount {getArrow("Total Amount")}
-              </Dropdown.Item>
-              <Dropdown.Item eventKey="Created At">
-                Created At {getArrow("Created At")}
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown>
-        </Col>
-      </Row>
-
-      {/* Purchases List */}
-      {filteredPurchases.length === 0 ? (
-        <div className="text-center text-muted mt-5">No purchases found</div>
-      ) : (
-        <Row xs={1} md={2} lg={3} className="g-4">
-          {filteredPurchases.map((purchase) => (
-            <Col key={purchase.purchase_id}>
-              <Card className="themed-card h-100">
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <Card.Title className="mb-0">
-                      <strong>Purchase ID: {purchase.purchase_id}</strong>
-                    </Card.Title>
-                    <div className="d-flex gap-1">
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(purchase);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={(e) => handleDelete(purchase.purchase_id, e)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Card.Subtitle className="mb-1 text-muted">
-                    {new Date(purchase.purchase_date).toLocaleDateString("en-GB")}
-                  </Card.Subtitle>
-                  <Card.Text className="mb-1">
-                    Total: <strong>{Number(purchase.total_amount).toFixed(2)}{currency_symbol}</strong>
-                  </Card.Text>
-                  <Card.Text>
-                    <em>Note:</em> {purchase.notes?.trim() || "Empty"}
-                  </Card.Text>
-
-                  <div className="text-end mt-3">
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={() => setDetailPurchaseId(purchase.purchase_id)}
-                    >
-                      View Details
-                    </Button>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
-
-      {/* Add Purchase Modal */}
-      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg" contentClassName="custom-modal">
-        <Modal.Header closeButton>
-          <Modal.Title>New Purchase</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <PurchaseForm onPurchaseCreated={handlePurchaseCreated} />
-        </Modal.Body>
-      </Modal>
-
-      {/* Edit Purchase Modal */}
-      <Modal
-        show={showEditModal}
-        onHide={() => {
-          setShowEditModal(false);
-          setEditingPurchase(null);
-        }}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Edit Purchase</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {isEditLoading ? (
-            <p>Loading...</p>
-          ) : (
-            editingPurchase && (
-              <PurchaseEditForm
-                purchaseId={editingPurchase.purchase_id}
-                onClose={() => {
-                  setShowEditModal(false);
-                  setEditingPurchase(null);
-                }}
-                onUpdated={handlePurchaseUpdated}
+      {/* Filter and Sort Toolbar */}
+      <div className="panel-card mb-4">
+        <div className="panel-card-body">
+          <div className="inventory-controls-row">
+            <div className="input-wrapper has-icon-left flex-grow-1">
+              <span className="input-icon input-icon-left">
+                <MdSearch size={18} />
+              </span>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search purchases by PO ID or supplier memo..."
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
               />
-            )
-          )}
-        </Modal.Body>
-      </Modal>
+              {filterText && (
+                <span
+                  className="input-icon input-icon-right clickable-icon"
+                  onClick={() => setFilterText("")}
+                >
+                  <MdClose />
+                </span>
+              )}
+            </div>
 
-      {/* Details Modal */}
+            <div className="sort-controls">
+              <span className="text-muted text-sm">Sort:</span>
+              <select
+                className="form-control form-control-sm"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="date">Order Date</option>
+                <option value="id">PO ID</option>
+                <option value="amount">Total Spent</option>
+              </select>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setSortAsc(!sortAsc)}
+                title={sortAsc ? "Ascending order" : "Descending order"}
+              >
+                {sortAsc ? <MdArrowUpward /> : <MdArrowDownward />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Purchases Table */}
+      <div className="panel-card">
+        <div className="table-responsive">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th onClick={() => toggleSort("id")} style={{ cursor: "pointer" }}>
+                  PO ID {sortBy === "id" && (sortAsc ? "↑" : "↓")}
+                </th>
+                <th onClick={() => toggleSort("date")} style={{ cursor: "pointer" }}>
+                  Date & Time {sortBy === "date" && (sortAsc ? "↑" : "↓")}
+                </th>
+                <th>Supplier Memo / Notes</th>
+                <th onClick={() => toggleSort("amount")} style={{ cursor: "pointer" }}>
+                  Total Expenditure {sortBy === "amount" && (sortAsc ? "↑" : "↓")}
+                </th>
+                <th className="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="text-center py-5">
+                    <div className="skeleton skeleton-title mx-auto mb-2" />
+                    <div className="skeleton skeleton-text mx-auto w-50" />
+                  </td>
+                </tr>
+              ) : filteredPurchases.length > 0 ? (
+                filteredPurchases.map((p) => (
+                  <tr key={p.purchase_id}>
+                    <td className="font-mono font-bold text-primary">PO #{p.purchase_id}</td>
+                    <td className="text-muted text-sm">
+                      {new Date(p.purchase_date).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="text-secondary text-sm">
+                      {p.notes ? `"${p.notes}"` : <span className="text-muted">—</span>}
+                    </td>
+                    <td className="font-mono font-semibold text-accent">
+                      {currency_symbol || "$"}{Number(p.total_amount || 0).toFixed(2)}
+                    </td>
+                    <td className="text-end">
+                      <div className="btn-group">
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => setDetailPurchId(p.purchase_id)}
+                          title="View Invoice"
+                        >
+                          <MdVisibility size={14} /> Invoice
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(p.purchase_id)}
+                          title="Delete Purchase"
+                        >
+                          <MdDelete size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="text-center py-5">
+                    <MdShoppingCart size={40} className="empty-state-icon" />
+                    <p className="empty-state-text mt-2">
+                      {filterText
+                        ? "No purchase orders match your filter."
+                        : "No purchases recorded yet."}
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Record Purchase Modal */}
       <Modal
-        show={!!detailPurchaseId}
-        onHide={() => setDetailPurchaseId(null)}
+        show={showAddModal}
+        onHide={() => setShowAddModal(false)}
         size="lg"
         centered
-        contentClassName="custom-modal"
+        contentClassName="custom-modal-dark"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Purchase Details</Modal.Title>
+          <Modal.Title>Record Restock Purchase Order</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <PurchaseDetail purchaseId={detailPurchaseId} />
+          <PurchaseForm
+            onPurchaseCreated={() => {
+              setShowAddModal(false);
+              fetchPurchases();
+            }}
+          />
         </Modal.Body>
       </Modal>
-    </Container>
+
+      {/* Purchase Details Modal */}
+      <Modal
+        show={!!detailPurchaseId}
+        onHide={() => setDetailPurchId(null)}
+        size="lg"
+        centered
+        contentClassName="custom-modal-dark"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Purchase Order #{detailPurchaseId}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {detailPurchaseId && <PurchaseDetail purchaseId={detailPurchaseId} />}
+        </Modal.Body>
+      </Modal>
+    </div>
   );
 };
 

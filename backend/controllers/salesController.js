@@ -1,55 +1,100 @@
 const db = require("../config/db");
 const withTransaction = require("../utils/transaction");
 
+function requestError(message, statusCode = 400) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function normalizeSaleItems(items) {
+  if (!Array.isArray(items) || items.length === 0 || items.length > 100) {
+    throw new Error("Add between 1 and 100 sale items.");
+  }
+
+  return items.map((item) => {
+    const product_id = Number(item?.product_id);
+    const quantity = Number(item?.quantity);
+    const unit_price = Number(item?.unit_price);
+    if (!Number.isSafeInteger(product_id) || product_id < 1) throw new Error("Choose a valid product.");
+    if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 1000000) {
+      throw new Error("Quantity must be a positive whole number.");
+    }
+    if (!Number.isFinite(unit_price) || unit_price < 0 || unit_price > 1000000000) {
+      throw new Error("Enter a valid unit price.");
+    }
+    return { product_id, quantity, unit_price: Math.round(unit_price * 100) / 100 };
+  });
+}
+
+function addQuantities(items) {
+  return items.reduce((quantities, item) => {
+    quantities.set(item.product_id, (quantities.get(item.product_id) || 0) + item.quantity);
+    return quantities;
+  }, new Map());
+}
+
+function cleanNote(note) {
+  if (note == null || note === "") return null;
+  if (typeof note !== "string" || note.length > 500) throw new Error("Note must be 500 characters or fewer.");
+  return note.trim() || null;
+}
+
 exports.createSale = async (req, res) => {
-  const { items, note } = req.body;
+  let items;
+  let saleNote;
   const user_id = req.user.id;
 
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ message: "No sale items provided" });
+  try {
+    items = normalizeSaleItems(req.body.items);
+    saleNote = cleanNote(req.body.note);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
   }
 
   try {
-    const result = await withTransaction(async (conn) => {
-      for (const item of items) {
-        const [rows] = await conn.query(
-          `SELECT total_quantity FROM products WHERE product_id = ?`,
-          [item.product_id]
+    const result = await withTransaction((conn) => {
+      const quantities = addQuantities(items);
+      for (const [productId, quantity] of quantities) {
+        const [rows] = conn.query(
+          "SELECT product_id, name, total_quantity FROM products WHERE product_id = ? AND user_id = ?",
+          [productId, user_id]
         );
-        if (rows.length === 0) {
-          throw new Error(`Product with ID ${item.product_id} not found`);
-        }
-        if (rows[0].total_quantity < item.quantity) {
-          throw new Error(`Not enough stock for product ID ${item.product_id}`);
-        }
+        if (rows.length === 0) throw requestError(`Product ${productId} was not found in your catalog.`, 404);
+        if (rows[0].total_quantity < quantity) throw requestError(`Not enough stock for ${rows[0].name}.`, 409);
       }
 
-      let totalAmount = 0;
-      items.forEach(item => {
-        totalAmount += item.unit_price * item.quantity;
-      });
+      const totalAmount = Math.round(items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0) * 100) / 100;
 
-      const [saleResult] = await conn.query(
+      const [saleResult] = conn.query(
         `INSERT INTO sales (user_id, total_amount, note)
          VALUES (?, ?, ?)`,
-        [user_id, totalAmount, note || null]
+        [user_id, totalAmount, saleNote]
       );
 
       const saleId = saleResult.insertId;
 
       for (const item of items) {
         const { product_id, quantity, unit_price } = item;
-
-        await conn.query(
-          `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price)
-           VALUES (?, ?, ?, ?, ?)`,
-          [saleId, product_id, quantity, unit_price, quantity * unit_price]
+        const [[product]] = conn.query(
+          "SELECT cost_price FROM products WHERE product_id = ? AND user_id = ?",
+          [product_id, user_id]
         );
 
-        await conn.query(
-          `UPDATE products SET total_quantity = total_quantity - ? WHERE product_id = ?`,
-          [quantity, product_id]
+        conn.query(
+          `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price, cost_price)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [saleId, product_id, quantity, unit_price, quantity * unit_price, product.cost_price]
         );
+      }
+
+      for (const [productId, quantity] of quantities) {
+        const [update] = conn.query(
+          `UPDATE products SET total_quantity = total_quantity - ?
+           WHERE product_id = ? AND user_id = ? AND total_quantity >= ?`,
+          [quantity, productId, user_id, quantity]
+        );
+        if (update.affectedRows !== 1) throw requestError("Stock changed while recording this sale. Please try again.", 409);
       }
 
       return saleId;
@@ -57,8 +102,9 @@ exports.createSale = async (req, res) => {
 
     res.status(201).json({ message: "Sale recorded successfully", sale_id: result });
   } catch (err) {
-    console.error("Error creating sale:", err);
-    res.status(400).json({ message: err.message || "Error creating sale" });
+    const status = err.statusCode || 500;
+    if (status >= 500) console.error("Error creating sale:", err);
+    res.status(status).json({ message: status < 500 ? err.message : "Error creating sale" });
   }
 };
 
@@ -82,7 +128,7 @@ exports.getSales = async (req, res) => {
           'total_price', si.total_price
         )
       ) AS items,
-      SUM((si.unit_price - p.unit_price) * si.quantity) AS total_earnings
+      SUM((si.unit_price - si.cost_price) * si.quantity) AS total_earnings
     FROM sales s
     JOIN sale_items si ON s.sale_id = si.sale_id
     JOIN products p ON si.product_id = p.product_id
@@ -150,10 +196,11 @@ exports.getSaleById = async (req, res) => {
           'quantity', si.quantity,
           'unit_price', si.unit_price,
           'total_price', si.total_price,
-          'earnings', (si.unit_price - p.unit_price) * si.quantity
+          'cost_price', si.cost_price,
+          'earnings', (si.unit_price - si.cost_price) * si.quantity
         )
       ) AS items,
-      SUM((si.unit_price - p.unit_price) * si.quantity) AS total_earnings
+      SUM((si.unit_price - si.cost_price) * si.quantity) AS total_earnings
     FROM sales s
     JOIN sale_items si ON s.sale_id = si.sale_id
     JOIN products p ON si.product_id = p.product_id
@@ -283,69 +330,81 @@ exports.getSalesStats = async (req, res) => {
 
 exports.updateSale = async (req, res) => {
   const { sale_id } = req.params;
-  const { note, items } = req.body;
   const user_id = req.user.id;
+  let items;
+  let saleNote;
 
-  if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ message: "Sale items are required." });
+  try {
+    items = normalizeSaleItems(req.body.items);
+    saleNote = cleanNote(req.body.note);
+  } catch (err) {
+    return res.status(400).json({ message: err.message });
   }
 
   try {
-    await withTransaction(async (conn) => {
-      // 1. Verify sale exists and belongs to the user
-      const [existingSale] = await conn.query(
+    withTransaction((conn) => {
+      const [existingSale] = conn.query(
         "SELECT sale_id FROM sales WHERE sale_id = ? AND user_id = ?",
         [sale_id, user_id]
       );
-      if (existingSale.length === 0) {
-        throw new Error("Sale not found or not authorized.");
-      }
+      if (existingSale.length === 0) throw requestError("Sale not found.", 404);
 
-      // 2. Restore stock from old items
-      const [oldItems] = await conn.query(
-        "SELECT product_id, quantity FROM sale_items WHERE sale_id = ?",
+      const [oldItems] = conn.query(
+        "SELECT product_id, quantity, cost_price FROM sale_items WHERE sale_id = ?",
         [sale_id]
       );
+      const previousCosts = new Map(oldItems.map((item) => [item.product_id, item.cost_price]));
       for (const item of oldItems) {
-        await conn.query(
-          "UPDATE products SET total_quantity = total_quantity + ? WHERE product_id = ?",
-          [item.quantity, item.product_id]
+        conn.query(
+          "UPDATE products SET total_quantity = total_quantity + ? WHERE product_id = ? AND user_id = ?",
+          [item.quantity, item.product_id, user_id]
         );
       }
 
-      // 3. Delete old sale_items
-      await conn.query("DELETE FROM sale_items WHERE sale_id = ?", [sale_id]);
-
-      // 4. Insert new sale_items & deduct stock
-      let totalAmount = 0;
-      for (const item of items) {
-        const { product_id, quantity, unit_price } = item;
-        const total_price = quantity * unit_price;
-        totalAmount += total_price;
-
-        await conn.query(
-          `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price)
-           VALUES (?, ?, ?, ?, ?)`,
-          [sale_id, product_id, quantity, unit_price, total_price]
+      const quantities = addQuantities(items);
+      const costs = new Map();
+      for (const [productId, quantity] of quantities) {
+        const [[product]] = conn.query(
+          "SELECT name, cost_price, total_quantity FROM products WHERE product_id = ? AND user_id = ?",
+          [productId, user_id]
         );
+        if (!product) throw requestError(`Product ${productId} was not found in your catalog.`, 404);
+        const available = product.total_quantity;
+        if (available < quantity) throw requestError(`Not enough stock for ${product.name}.`, 409);
+        costs.set(productId, previousCosts.get(productId) ?? product.cost_price);
+      }
 
-        await conn.query(
-          "UPDATE products SET total_quantity = total_quantity - ? WHERE product_id = ?",
-          [quantity, product_id]
+      conn.query("DELETE FROM sale_items WHERE sale_id = ?", [sale_id]);
+
+      for (const { product_id, quantity, unit_price } of items) {
+        conn.query(
+          `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price, cost_price)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [sale_id, product_id, quantity, unit_price, quantity * unit_price, costs.get(product_id)]
         );
       }
 
-      // 5. Update note and total_amount
-      await conn.query(
+      for (const [productId, quantity] of quantities) {
+        const [update] = conn.query(
+          `UPDATE products SET total_quantity = total_quantity - ?
+           WHERE product_id = ? AND user_id = ? AND total_quantity >= ?`,
+          [quantity, productId, user_id, quantity]
+        );
+        if (update.affectedRows !== 1) throw requestError("Stock changed while updating this sale. Please try again.", 409);
+      }
+
+      const totalAmount = Math.round(items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0) * 100) / 100;
+      conn.query(
         "UPDATE sales SET note = ?, total_amount = ? WHERE sale_id = ?",
-        [note || null, totalAmount, sale_id]
+        [saleNote, totalAmount, sale_id]
       );
     });
 
     res.json({ message: "Sale updated successfully" });
   } catch (err) {
-    console.error("Error updating sale:", err);
-    res.status(500).json({ message: err.message || "Error updating sale" });
+    const status = err.statusCode || 500;
+    if (status >= 500) console.error("Error updating sale:", err);
+    res.status(status).json({ message: status < 500 ? err.message : "Error updating sale" });
   }
 };
 
@@ -354,39 +413,40 @@ exports.deleteSale = async (req, res) => {
   const user_id = req.user.id;
 
   try {
-    await withTransaction(async (conn) => {
-      // 1. Get sale items to restore product stock
-      const [items] = await conn.query(
+    withTransaction((conn) => {
+      const [sale] = conn.query(
+        "SELECT sale_id FROM sales WHERE sale_id = ? AND user_id = ?",
+        [sale_id, user_id]
+      );
+      if (!sale.length) throw requestError("Sale not found.", 404);
+
+      const [items] = conn.query(
         "SELECT product_id, quantity FROM sale_items WHERE sale_id = ?",
         [sale_id]
       );
 
-      // 2. Restore stock for each product
       for (const item of items) {
-        await conn.query(
-          "UPDATE products SET total_quantity = total_quantity + ? WHERE product_id = ?",
-          [item.quantity, item.product_id]
+        conn.query(
+          "UPDATE products SET total_quantity = total_quantity + ? WHERE product_id = ? AND user_id = ?",
+          [item.quantity, item.product_id, user_id]
         );
       }
 
-      // 3. Delete sale items
-      await conn.query("DELETE FROM sale_items WHERE sale_id = ?", [sale_id]);
-
-      // 4. Delete the sale itself
-      const [result] = await conn.query(
+      const [result] = conn.query(
         "DELETE FROM sales WHERE sale_id = ? AND user_id = ?",
         [sale_id, user_id]
       );
 
       if (result.affectedRows === 0) {
-        throw new Error("Sale not found or not authorized");
+        throw requestError("Sale not found.", 404);
       }
     });
 
     res.json({ message: "Sale deleted successfully" });
   } catch (err) {
-    console.error("Error deleting sale:", err);
-    res.status(500).json({ message: err.message || "Error deleting sale" });
+    const status = err.statusCode || 500;
+    if (status >= 500) console.error("Error deleting sale:", err);
+    res.status(status).json({ message: status < 500 ? err.message : "Error deleting sale" });
   }
 };
 
@@ -411,7 +471,7 @@ exports.getSalesSummary = async (req, res) => {
           COUNT(*)                          AS todaysSales
        FROM sales
        WHERE user_id = ?
-         AND DATE(sale_date) = CURDATE()`,
+         AND date(sale_date) = date('now')`,
       [user_id]
     );
 
@@ -437,9 +497,9 @@ exports.getDailySales = async (req, res) => {
           SUM(total_amount)         AS total
        FROM sales
        WHERE user_id = ?
-         AND sale_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-       GROUP BY DATE(sale_date)
-       ORDER BY DATE(sale_date) ASC`,
+         AND date(sale_date) >= date('now', '-30 days')
+       GROUP BY date(sale_date)
+       ORDER BY date(sale_date) ASC`,
       [user_id]
     );
 
